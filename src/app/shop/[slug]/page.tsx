@@ -156,7 +156,7 @@ export default async function ProductPage({ params }: PageProps) {
     brand: { "@type": "Brand", name: "AAA — Amit Amar Art" },
     offers: {
       "@type": "Offer",
-      priceCurrency: "USD",
+      priceCurrency: "ILS",
       price: salePrice,
       availability: "https://schema.org/InStock",
       url: `${SITE_URL}/shop/${product.slug}`,

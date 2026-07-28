@@ -17,6 +17,8 @@ import {
 import { SECTIONS, findProduct } from "@/lib/book-data"
 import { cn } from "@/lib/utils"
 import { useT } from "@/lib/i18n/context"
+import { useCart } from "@/lib/cart/store"
+import { getProduct, priceInfo } from "@/lib/products"
 
 type Spread =
   | { kind: "intro" }
@@ -30,6 +32,7 @@ const TURN_MS = 900
 
 export function BookExperience({ navItems }: { navItems?: NavLink[] } = {}) {
   const t = useT()
+  const addToBag = useCart((s) => s.add)
   const spreads = useMemo<Spread[]>(
     () => [
       { kind: "intro" },
@@ -459,7 +462,12 @@ export function BookExperience({ navItems }: { navItems?: NavLink[] } = {}) {
                 <div className="relative isolate h-full w-1/2 overflow-hidden rounded-r-sm">
                   <ProductSpecPage
                     product={product}
-                    onAddToCart={(id) => setCart((c) => (c.includes(id) ? c : [...c, id]))}
+                    onAddToCart={(id) => {
+                      // Add to the REAL shopping cart (book ids match catalog slugs).
+                      const p = getProduct(id)
+                      if (p) addToBag({ slug: p.slug, name: p.name, price: priceInfo(p).price, image: p.images[0] })
+                      setCart((c) => (c.includes(id) ? c : [...c, id]))
+                    }}
                   />
                 </div>
                 <div className="book-spine pointer-events-none absolute inset-0" aria-hidden="true" />

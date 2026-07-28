@@ -5,7 +5,7 @@ import type { SiteContent } from "@/lib/content/types";
 export type PreviewPage = "home" | "collection" | "shop" | "login";
 
 const formatUSD = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n || 0);
+  new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 0 }).format(n || 0);
 
 /**
  * A faithful, real-time mock of the site rendered straight from the draft

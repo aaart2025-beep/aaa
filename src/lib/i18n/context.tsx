@@ -1,15 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { DEFAULT_LANG, LANG_COOKIE, dir, type Lang } from "@/lib/i18n/config";
 import { translate, type TFunction } from "@/lib/i18n/dictionary";
 
 /* Client-side language state. Initialised from the cookie the server already
  * read (passed via <LanguageProvider initial=…>), so there is no flash. The
- * toggle writes the cookie, flips <html dir/lang> optimistically for an
- * instant feel, then router.refresh() re-renders Server Components in the new
- * language. */
+ * toggle writes the cookie and does a full reload so EVERY server- and
+ * client-rendered part of the page re-renders in the new language (a plain
+ * router.refresh() can leave cached server segments stale on some hosts). */
 
 interface LangCtx {
   lang: Lang;
@@ -28,20 +27,17 @@ export function LanguageProvider({
   children: React.ReactNode;
 }) {
   const [lang, setLangState] = React.useState<Lang>(initial);
-  const router = useRouter();
 
-  const setLang = React.useCallback(
-    (l: Lang) => {
-      setLangState(l);
-      // Persist for a year; path=/ so every route sees it.
-      document.cookie = `${LANG_COOKIE}=${l};path=/;max-age=31536000;samesite=lax`;
-      const root = document.documentElement;
-      root.setAttribute("lang", l);
-      root.setAttribute("dir", dir(l));
-      router.refresh();
-    },
-    [router],
-  );
+  const setLang = React.useCallback((l: Lang) => {
+    setLangState(l);
+    // Persist for a year; path=/ so every route sees it.
+    document.cookie = `${LANG_COOKIE}=${l};path=/;max-age=31536000;samesite=lax`;
+    const root = document.documentElement;
+    root.setAttribute("lang", l);
+    root.setAttribute("dir", dir(l));
+    // Full reload → server + client re-render in the chosen language.
+    window.location.reload();
+  }, []);
 
   const toggle = React.useCallback(
     () => setLang(lang === "he" ? "en" : "he"),
