@@ -1,0 +1,47 @@
+/* Resend transport. Absent RESEND_API_KEY (local checkout) email is disabled
+ * and every send resolves false — callers must treat email as best-effort.
+ * One retry on failure; never throws. */
+
+const KEY = process.env.RESEND_API_KEY;
+export const emailEnabled = Boolean(KEY);
+export const NOTIFY = process.env.NOTIFY_EMAIL ?? "";
+const FROM = "AAA — Wearable Art <orders@artbyaaa.com>";
+
+export interface EmailMessage {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  replyTo?: string;
+}
+
+async function post(msg: EmailMessage): Promise<boolean> {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: FROM,
+      to: [msg.to],
+      subject: msg.subject,
+      html: msg.html,
+      text: msg.text,
+      ...(msg.replyTo ? { reply_to: msg.replyTo } : {}),
+    }),
+  });
+  return res.ok;
+}
+
+export async function sendEmail(msg: EmailMessage): Promise<boolean> {
+  if (!emailEnabled) return false;
+  try {
+    if (await post(msg)) return true;
+    return await post(msg); // one retry
+  } catch {
+    try {
+      return await post(msg);
+    } catch {
+      console.error(`email send failed: ${msg.subject} -> ${msg.to}`);
+      return false;
+    }
+  }
+}
