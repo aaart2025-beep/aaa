@@ -44,7 +44,8 @@ export async function POST(req: Request) {
   const name = `products/${safeBase || "image"}.${ext}`;
 
   try {
-    const { url } = await put(name, file, {
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const { url } = await put(name, bytes, {
       access: "public",
       token: TOKEN, // undefined is fine for an OIDC-connected store
       addRandomSuffix: true,
@@ -53,9 +54,11 @@ export async function POST(req: Request) {
     // The public Blob URL is stored as the product's image and rendered directly.
     return NextResponse.json({ ok: true, path: url });
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
     console.error("image upload failed:", e);
+    // Surface the real reason so it can be diagnosed from the admin UI.
     return NextResponse.json(
-      { ok: false, error: "Upload failed. Check that Blob storage is connected in Vercel." },
+      { ok: false, error: `Upload failed: ${msg}` },
       { status: 503 },
     );
   }
