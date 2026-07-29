@@ -22,7 +22,32 @@ interface PlaneDef {
   baseX: number;
 }
 
-function Strip({ images, hrefs, reverse, speed }: { images: string[]; hrefs: (string | undefined)[]; reverse: boolean; speed: number }) {
+/* Shared drag state between the DOM pointer handlers (on the wrapper) and the
+ * WebGL frame loop. `deltaX` is unconsumed pixels of drag; `vel` is the fling
+ * momentum (world units/sec); `moved` marks a real drag so a tap-through click
+ * doesn't accidentally open a product. */
+interface DragState {
+  active: boolean;
+  startX: number;
+  lastX: number;
+  deltaX: number;
+  vel: number;
+  moved: boolean;
+}
+
+function Strip({
+  images,
+  hrefs,
+  reverse,
+  speed,
+  drag,
+}: {
+  images: string[];
+  hrefs: (string | undefined)[];
+  reverse: boolean;
+  speed: number;
+  drag: React.MutableRefObject<DragState>;
+}) {
   const textures = useLoader(THREE.TextureLoader, images);
   const router = useRouter();
   const nav = useTransitionNav();
@@ -58,7 +83,7 @@ function Strip({ images, hrefs, reverse, speed }: { images: string[]; hrefs: (st
     };
   }, [textures, images]);
 
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     const d = Math.min(dt, 0.05);
     // scroll velocity → extra curve + tilt
     const y = typeof window !== "undefined" ? window.scrollY : 0;
@@ -67,7 +92,20 @@ function Strip({ images, hrefs, reverse, speed }: { images: string[]; hrefs: (st
     vel.current += (Math.max(-60, Math.min(60, sv)) - vel.current) * 0.12;
     const v = vel.current;
 
-    offset.current += d * speed * (reverse ? -1 : 1);
+    // manual drag (finger / mouse) moves the band; a fling carries momentum.
+    const worldPerPx = state.size.width > 0 ? state.viewport.width / state.size.width : 0.008;
+    if (drag.current.deltaX !== 0) {
+      const move = drag.current.deltaX * worldPerPx;
+      offset.current -= move;
+      drag.current.vel = move / d;
+      drag.current.deltaX = 0;
+    }
+    if (!drag.current.active) {
+      offset.current += d * speed * (reverse ? -1 : 1); // steady auto-drift
+      offset.current -= drag.current.vel * d; // fling momentum after release
+      drag.current.vel *= Math.exp(-d * 3); // ease the fling out
+      if (Math.abs(drag.current.vel) < 0.0015) drag.current.vel = 0;
+    }
     const half = total / 2;
     const arc = 0.05 + Math.min(0.06, Math.abs(v) * 0.0016);
 
@@ -113,6 +151,7 @@ function Strip({ images, hrefs, reverse, speed }: { images: string[]; hrefs: (st
           }}
           onClick={(e: ThreeEvent<MouseEvent>) => {
             e.stopPropagation();
+            if (drag.current.moved) return; // this was a drag, not a tap
             onClick(p.href);
           }}
         >
@@ -139,6 +178,35 @@ export function CollectionStrip3D({
   const [near, setNear] = React.useState(false);
   const [visible, setVisible] = React.useState(false);
   const wrapRef = React.useRef<HTMLDivElement>(null);
+  const drag = React.useRef<DragState>({ active: false, startX: 0, lastX: 0, deltaX: 0, vel: 0, moved: false });
+
+  // Drag to scroll the strip (finger on mobile, mouse on desktop). Listeners go
+  // on window during the drag so it keeps tracking outside the canvas and the
+  // WebGL raycaster still gets its own hover/click events (no pointer capture).
+  const onPointerDown = (e: React.PointerEvent) => {
+    const dr = drag.current;
+    dr.active = true;
+    dr.moved = false;
+    dr.startX = e.clientX;
+    dr.lastX = e.clientX;
+    dr.vel = 0;
+    const move = (ev: PointerEvent) => {
+      if (!dr.active) return;
+      dr.deltaX += ev.clientX - dr.lastX;
+      dr.lastX = ev.clientX;
+      if (Math.abs(ev.clientX - dr.startX) > 6) dr.moved = true;
+    };
+    const up = () => {
+      dr.active = false;
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  };
+
   React.useEffect(() => setHydrated(true), []);
   // two rings around the viewport: `near` (600px) mounts/unmounts the whole
   // canvas so at most ~3 WebGL contexts exist at once; `visible` (200px) gates
@@ -170,7 +238,11 @@ export function CollectionStrip3D({
   }, []);
 
   return (
-    <div ref={wrapRef} className="h-full w-full">
+    <div
+      ref={wrapRef}
+      onPointerDown={onPointerDown}
+      className="h-full w-full cursor-grab touch-pan-y select-none active:cursor-grabbing"
+    >
       {hydrated && near && (
         <Canvas
           frameloop={visible ? "always" : "never"}
@@ -180,7 +252,7 @@ export function CollectionStrip3D({
           camera={{ position: [0, 0, 5], fov: 26 }}
         >
           <React.Suspense fallback={null}>
-            <Strip images={images} hrefs={hrefs} reverse={reverse} speed={speed} />
+            <Strip images={images} hrefs={hrefs} reverse={reverse} speed={speed} drag={drag} />
           </React.Suspense>
         </Canvas>
       )}
