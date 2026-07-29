@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { upload } from "@vercel/blob/client";
 
 /* Shared primitives for the admin console — inputs, field wrappers, upload. */
 
@@ -16,16 +17,27 @@ export const formatUSD = (n: number) =>
 
 export const isHex = (c: string) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c.trim());
 
+/* Uploads the image straight from the browser to Vercel Blob (via a short-lived
+ * token minted by /api/admin/upload). This bypasses Vercel's ~4.5MB serverless
+ * request-body limit, so full-size phone photos upload fine. Returns the public
+ * Blob URL to store on the product. */
 export async function uploadImage(file: File): Promise<{ ok: boolean; path?: string; error?: string }> {
-  const fd = new FormData();
-  fd.append("file", file);
+  const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
+  const base =
+    file.name
+      .replace(/\.[^.]+$/, "")
+      .replace(/[^a-z0-9-]+/gi, "-")
+      .slice(0, 40)
+      .toLowerCase() || "image";
   try {
-    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
-    const json = (await res.json().catch(() => ({}))) as { path?: string; error?: string };
-    if (!res.ok) return { ok: false, error: json.error ?? "Upload failed" };
-    return { ok: true, path: json.path };
-  } catch {
-    return { ok: false, error: "Upload failed" };
+    const result = await upload(`products/${base}.${ext}`, file, {
+      access: "public",
+      handleUploadUrl: "/api/admin/upload",
+      contentType: file.type || undefined,
+    });
+    return { ok: true, path: result.url };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Upload failed" };
   }
 }
 
