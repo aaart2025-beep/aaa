@@ -3,9 +3,11 @@ import { put } from "@vercel/blob";
 import { isAdmin } from "@/lib/auth";
 
 /* Product image upload. The client re-encodes the photo to a small JPEG before
- * posting, so the body stays well under Vercel's request limit. We store it on
- * Vercel Blob (public) so it's servable on the storefront. Requires a connected
- * Blob store (BLOB_READ_WRITE_TOKEN is injected automatically when linked). */
+ * posting, so the body stays well under Vercel's request limit. The studio's
+ * Blob store is a PRIVATE store, so we store the image privately and serve it
+ * back through the same-origin /api/media proxy (see src/app/api/media). We
+ * return that proxy path as the product's image URL. Requires a connected Blob
+ * store (BLOB_READ_WRITE_TOKEN is injected automatically when linked). */
 
 export const runtime = "nodejs";
 
@@ -37,13 +39,15 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const bytes = Buffer.from(await file.arrayBuffer());
-    const { url } = await put(`products/${Date.now().toString(36)}.jpg`, bytes, {
-      access: "public",
+    const result = await put(`products/${Date.now().toString(36)}.jpg`, bytes, {
+      access: "private",
       token: TOKEN, // undefined is fine for an OIDC-connected store
       addRandomSuffix: true,
       contentType: "image/jpeg",
     });
-    return NextResponse.json({ ok: true, path: url });
+    // Serve the private blob through our same-origin proxy so the storefront
+    // (and next/image) can display it without a public store.
+    return NextResponse.json({ ok: true, path: `/api/media/${result.pathname}` });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("image upload failed:", e);
