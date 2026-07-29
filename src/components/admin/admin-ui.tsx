@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { upload } from "@vercel/blob/client";
 
 /* Shared primitives for the admin console — inputs, field wrappers, upload. */
 
@@ -47,48 +46,30 @@ async function toDisplayableJpeg(file: File): Promise<Blob> {
   return blob;
 }
 
-/* Uploads the image straight from the browser to Vercel Blob (via a short-lived
- * token minted by /api/admin/upload). This bypasses Vercel's ~4.5MB serverless
- * request-body limit, so full-size phone photos upload fine. The image is first
- * re-encoded to a compact JPEG so it loads fast and always displays. Returns the
- * public Blob URL to store on the product. */
+/* Re-encodes the image to a compact JPEG in the browser, then uploads that small
+ * file to the server (which stores it on Vercel Blob). Because the JPEG is small
+ * (~a few hundred KB) it stays well under Vercel's request limit, so the upload
+ * is fast and reliable. Returns the public Blob URL to store on the product. */
 export async function uploadImage(file: File): Promise<{ ok: boolean; path?: string; error?: string }> {
-  const base =
-    file.name
-      .replace(/\.[^.]+$/, "")
-      .replace(/[^a-z0-9-]+/gi, "-")
-      .slice(0, 40)
-      .toLowerCase() || "image";
-
-  let body: Blob = file;
-  let ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
-  let contentType = file.type || undefined;
+  let jpeg: Blob;
   try {
-    body = await toDisplayableJpeg(file);
-    ext = "jpg";
-    contentType = "image/jpeg";
+    jpeg = await toDisplayableJpeg(file);
   } catch {
-    // Browser couldn't decode it (e.g. an iPhone HEIC on Chrome). Upload the
-    // original — the server only accepts web image types, so an unsupported
-    // format returns a clear error instead of a silent black tile.
-    body = file;
-  }
-
-  try {
-    const result = await upload(`products/${base}.${ext}`, body, {
-      access: "public",
-      handleUploadUrl: "/api/admin/upload",
-      contentType,
-    });
-    return { ok: true, path: result.url };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Upload failed";
     return {
       ok: false,
-      error: /content type|not allowed|allowed/i.test(msg)
-        ? "That image format isn't supported. Please use JPG, PNG or WEBP (on iPhone, set Camera → Formats → Most Compatible)."
-        : msg,
+      error: "Couldn't process this image. Please use a JPG, PNG or WEBP (on iPhone: Camera → Formats → Most Compatible).",
     };
+  }
+
+  const fd = new FormData();
+  fd.append("file", jpeg, "image.jpg");
+  try {
+    const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+    const json = (await res.json().catch(() => ({}))) as { path?: string; error?: string };
+    if (!res.ok || !json.path) return { ok: false, error: json.error ?? "Upload failed" };
+    return { ok: true, path: json.path };
+  } catch {
+    return { ok: false, error: "Upload failed — please check your connection and try again." };
   }
 }
 

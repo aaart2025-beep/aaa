@@ -1,42 +1,52 @@
 import { NextResponse } from "next/server";
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { put } from "@vercel/blob";
 import { isAdmin } from "@/lib/auth";
 
-/* Client-upload flow. The browser uploads the image DIRECTLY to Vercel Blob,
- * so it isn't bound by Vercel's ~4.5MB serverless request-body limit (full-size
- * phone photos work). This route only mints a short-lived, admin-gated upload
- * token and receives the completion callback. Requires a connected Blob store
- * (BLOB_READ_WRITE_TOKEN is injected automatically when the store is linked). */
+/* Product image upload. The client re-encodes the photo to a small JPEG before
+ * posting, so the body stays well under Vercel's request limit. We store it on
+ * Vercel Blob (public) so it's servable on the storefront. Requires a connected
+ * Blob store (BLOB_READ_WRITE_TOKEN is injected automatically when linked). */
 
 export const runtime = "nodejs";
 
+const TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
+const blobEnabled = Boolean(TOKEN) || Boolean(process.env.BLOB_STORE_ID);
+
 export async function POST(req: Request): Promise<NextResponse> {
-  let body: HandleUploadBody;
+  if (!(await isAdmin())) {
+    return NextResponse.json({ ok: false, error: "Unauthorized — please sign in again." }, { status: 401 });
+  }
+
+  if (!blobEnabled) {
+    return NextResponse.json(
+      { ok: false, error: "Image storage isn't connected. In Vercel: Storage → Blob → connect it to this project, then redeploy." },
+      { status: 503 },
+    );
+  }
+
+  let file: FormDataEntryValue | null;
   try {
-    body = (await req.json()) as HandleUploadBody;
+    const form = await req.formData();
+    file = form.get("file");
   } catch {
-    return NextResponse.json({ error: "Bad request" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: "Bad request" }, { status: 400 });
+  }
+  if (!(file instanceof File)) {
+    return NextResponse.json({ ok: false, error: "No file received" }, { status: 400 });
   }
 
   try {
-    const json = await handleUpload({
-      body,
-      request: req,
-      onBeforeGenerateToken: async () => {
-        // Only a signed-in admin may obtain an upload token.
-        if (!(await isAdmin())) throw new Error("Unauthorized — please sign in again.");
-        return {
-          allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"],
-          addRandomSuffix: true,
-          maximumSizeInBytes: 20 * 1024 * 1024,
-        };
-      },
-      // Nothing to persist here — the client stores the returned URL on the product.
-      onUploadCompleted: async () => {},
+    const bytes = Buffer.from(await file.arrayBuffer());
+    const { url } = await put(`products/${Date.now().toString(36)}.jpg`, bytes, {
+      access: "public",
+      token: TOKEN, // undefined is fine for an OIDC-connected store
+      addRandomSuffix: true,
+      contentType: "image/jpeg",
     });
-    return NextResponse.json(json);
+    return NextResponse.json({ ok: true, path: url });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 400 });
+    console.error("image upload failed:", e);
+    return NextResponse.json({ ok: false, error: `Upload failed: ${msg}` }, { status: 503 });
   }
 }
