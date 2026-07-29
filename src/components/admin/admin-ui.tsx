@@ -17,27 +17,78 @@ export const formatUSD = (n: number) =>
 
 export const isHex = (c: string) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c.trim());
 
+/* Re-encode + downscale an image to a web-friendly JPEG in the browser. This
+ * (a) shrinks huge phone photos so uploads are fast, and (b) converts odd
+ * formats (incl. HEIC on Safari) to JPEG so they actually display. Throws if the
+ * browser can't decode the file (e.g. HEIC on Chrome) — the caller then uploads
+ * the original untouched. */
+async function toDisplayableJpeg(file: File): Promise<Blob> {
+  const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const MAX = 1600;
+  let w = bmp.width;
+  let h = bmp.height;
+  if (Math.max(w, h) > MAX) {
+    const s = MAX / Math.max(w, h);
+    w = Math.round(w * s);
+    h = Math.round(h * s);
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bmp.close();
+    throw new Error("Canvas unavailable");
+  }
+  ctx.drawImage(bmp, 0, 0, w, h);
+  bmp.close();
+  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, "image/jpeg", 0.86));
+  if (!blob) throw new Error("Could not encode image");
+  return blob;
+}
+
 /* Uploads the image straight from the browser to Vercel Blob (via a short-lived
  * token minted by /api/admin/upload). This bypasses Vercel's ~4.5MB serverless
- * request-body limit, so full-size phone photos upload fine. Returns the public
- * Blob URL to store on the product. */
+ * request-body limit, so full-size phone photos upload fine. The image is first
+ * re-encoded to a compact JPEG so it loads fast and always displays. Returns the
+ * public Blob URL to store on the product. */
 export async function uploadImage(file: File): Promise<{ ok: boolean; path?: string; error?: string }> {
-  const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
   const base =
     file.name
       .replace(/\.[^.]+$/, "")
       .replace(/[^a-z0-9-]+/gi, "-")
       .slice(0, 40)
       .toLowerCase() || "image";
+
+  let body: Blob = file;
+  let ext = (file.name.split(".").pop() ?? "jpg").toLowerCase();
+  let contentType = file.type || undefined;
   try {
-    const result = await upload(`products/${base}.${ext}`, file, {
+    body = await toDisplayableJpeg(file);
+    ext = "jpg";
+    contentType = "image/jpeg";
+  } catch {
+    // Browser couldn't decode it (e.g. an iPhone HEIC on Chrome). Upload the
+    // original — the server only accepts web image types, so an unsupported
+    // format returns a clear error instead of a silent black tile.
+    body = file;
+  }
+
+  try {
+    const result = await upload(`products/${base}.${ext}`, body, {
       access: "public",
       handleUploadUrl: "/api/admin/upload",
-      contentType: file.type || undefined,
+      contentType,
     });
     return { ok: true, path: result.url };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Upload failed" };
+    const msg = e instanceof Error ? e.message : "Upload failed";
+    return {
+      ok: false,
+      error: /content type|not allowed|allowed/i.test(msg)
+        ? "That image format isn't supported. Please use JPG, PNG or WEBP (on iPhone, set Camera → Formats → Most Compatible)."
+        : msg,
+    };
   }
 }
 
