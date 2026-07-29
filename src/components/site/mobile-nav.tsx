@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { TransitionLink } from "@/components/transition/page-transition";
+import { LanguageToggle } from "@/components/site/language-toggle";
 import { cn } from "@/lib/utils";
 
 export interface MobileNavProps {
@@ -18,6 +19,11 @@ export interface MobileNavProps {
   menuLabel?: string;
   closeLabel?: string;
   footerNote?: string;
+  /** Legal/policy links shown at the bottom of the menu. */
+  legalLinks?: { href: string; label: string }[];
+  legalHeading?: string;
+  /** Show the EN/HE language switch inside the menu. */
+  showLangToggle?: boolean;
 }
 
 /* Phone menu as a page of the same workbook: a full-height paper sheet that
@@ -36,6 +42,9 @@ export function MobileNav({
   menuLabel = "Menu",
   closeLabel = "Close menu",
   footerNote = "amit_amar_art — made by hand",
+  legalLinks = [],
+  legalHeading = "Policies & terms",
+  showLangToggle = true,
 }: MobileNavProps) {
   const [open, setOpen] = React.useState(false);
   const isDark = tone === "dark";
@@ -130,10 +139,38 @@ export function MobileNav({
         </nav>
 
         <footer className="shrink-0 border-t border-ink/15 px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {/* legal / policy links */}
+          {legalLinks.length > 0 && (
+            <div className="mb-2">
+              <p className="font-typewriter px-1.5 pb-1 text-[9px] uppercase tracking-[0.22em] text-ink/50">
+                {legalHeading}
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 px-1.5">
+                {legalLinks.map((l) => (
+                  <TransitionLink
+                    key={l.href}
+                    href={l.href}
+                    onClick={close}
+                    className="font-typewriter inline-flex min-h-9 items-center text-[11px] uppercase tracking-[0.12em] text-ink/70 transition-colors hover:text-ink"
+                  >
+                    {l.label}
+                  </TransitionLink>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* language switch — lives here so it's off the top bar on phones */}
+          {showLangToggle && (
+            <div className="mb-1 border-t border-ink/10 px-1.5 pt-2">
+              <LanguageToggle />
+            </div>
+          )}
+
           <TransitionLink
             href={loginHref}
             onClick={close}
-            className="font-typewriter flex min-h-12 items-center px-1.5 text-[12px] uppercase tracking-[0.16em] text-ink/70 transition-colors hover:text-ink"
+            className="font-typewriter flex min-h-12 items-center border-t border-ink/10 px-1.5 pt-1 text-[12px] uppercase tracking-[0.16em] text-ink/70 transition-colors hover:text-ink"
           >
             {loginLabel}
           </TransitionLink>

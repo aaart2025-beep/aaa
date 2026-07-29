@@ -241,8 +241,7 @@ export default async function ProductPage({ params }: PageProps) {
           <div className="shrink-0 border-t border-ink/60 py-3">
             {discountPct ? (
               <p className="font-typewriter mb-2 text-[11px] uppercase tracking-[0.16em] text-ink/70">
-                <span className="bg-ink px-1.5 py-0.5 font-bold text-lime">{t("shop.offBadge", { pct: discountPct })}</span>{" "}
-                {t("shop.listPriceNote")}
+                <span className="bg-red-600 px-1.5 py-0.5 font-bold text-white">{t("shop.offBadge", { pct: discountPct })}</span>
               </p>
             ) : null}
             <BuyPanel

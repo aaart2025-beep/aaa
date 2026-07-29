@@ -58,6 +58,7 @@ export const chrome: Record<Lang, Record<string, string>> = {
     "chrome.footerPrivacy": "Privacy",
     "chrome.footerTerms": "Terms",
     "chrome.footerAccessibility": "Accessibility",
+    "chrome.footerLegal": "Policies & terms",
     "chrome.footerDisclaimer":
       "All third-party names, logos, and trademarks are the property of their respective owners. AAA is an independent studio and is not affiliated with, sponsored by, or endorsed by any of them.",
     // language toggle
@@ -118,6 +119,7 @@ export const chrome: Record<Lang, Record<string, string>> = {
     "chrome.footerPrivacy": "פרטיות",
     "chrome.footerTerms": "תקנון",
     "chrome.footerAccessibility": "נגישות",
+    "chrome.footerLegal": "מדיניות ותקנון",
     "chrome.footerDisclaimer":
       "כל השמות, הלוגואים והסימנים המסחריים של צד שלישי הם רכושם של בעליהם בהתאמה. AAA הוא סטודיו עצמאי ואינו מסונף, ממומן או מאושר על ידי אף אחד מהם.",
     // language toggle

@@ -24,7 +24,7 @@ export default async function ContactPage() {
   const t = (k: string, v?: Record<string, string | number>) => translate(lang, k, v);
   const text = (key: string, fallback: string) =>
     lang === "he" ? t(`pages.${key}`) : (content.texts[key] ?? fallback);
-  const email = content.texts["contact.email"] ?? "hello@example.com";
+  const email = "aaart2025@gmail.com";
 
   return (
     <PaperShell>

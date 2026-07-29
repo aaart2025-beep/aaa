@@ -26,6 +26,7 @@ export function PaintPrice({
   /** Size/colour of the struck original (defaults to a muted ink). */
   strikeClassName?: string;
 }) {
+  const onSale = original !== undefined;
   const brush = (
     <span className={cn("relative inline-flex items-center justify-center px-3.5 py-1.5", className)}>
       <svg
@@ -70,7 +71,9 @@ export function PaintPrice({
       </svg>
       <span
         className={cn(
-          "relative font-typewriter font-semibold tracking-[0.04em] text-[#1c1a12] [text-shadow:0_1px_0_rgba(255,255,255,0.35)]",
+          "relative font-typewriter tracking-[0.04em] [text-shadow:0_1px_0_rgba(255,255,255,0.35)]",
+          // On sale: only the new price, bold and red (no struck original).
+          onSale ? "font-extrabold text-red-600" : "font-semibold text-[#1c1a12]",
           textClassName,
         )}
       >
@@ -80,19 +83,8 @@ export function PaintPrice({
     </span>
   );
 
-  if (original === undefined) return brush;
-
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <s
-        className={cn(
-          "font-typewriter font-medium text-ink/70 decoration-ink/55 decoration-[1.5px]",
-          strikeClassName,
-        )}
-      >
-        {formatPrice(original)}
-      </s>
-      {brush}
-    </span>
-  );
+  // strikeClassName is accepted for call-site compatibility but no longer used —
+  // a discounted price shows only the new (red, bold) price.
+  void strikeClassName;
+  return brush;
 }

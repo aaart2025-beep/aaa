@@ -1239,3 +1239,13 @@ html.a11y-reduce-motion *::after {
 [dir="rtl"] .uppercase {
   text-transform: none;
 }
+
+/* ── Desktop: nudge everything ~5% larger for comfortable reading ──────
+   The design is px-based, so a root font-size bump won't cascade; `zoom`
+   scales the whole content sheet uniformly. Scoped to the paper/content
+   surfaces (.book-theme) and to desktop widths only — phones are untouched. */
+@media (min-width: 768px) {
+  .book-theme {
+    zoom: 1.05;
+  }
+}

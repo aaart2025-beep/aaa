@@ -11,6 +11,7 @@ import { readContent } from "@/lib/content/store";
 import { navTextKey, visibleNavItems } from "@/lib/nav";
 import { getLang } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/dictionary";
+import type { Lang } from "@/lib/i18n/config";
 
 /* The workbook masthead — typewriter nav around the hand-drawn AAA waveform,
  * sitting on the paper like a printed letterhead. Sticky, solid paper (no
@@ -18,8 +19,17 @@ import { translate } from "@/lib/i18n/dictionary";
  * shared nav module (admin can toggle items on/off). Bilingual: Hebrew uses
  * the translated nav labels, English keeps the admin-editable content text. */
 
-export async function PaperHeader() {
-  const [admin, content, lang] = await Promise.all([isAdmin(), readContent(), getLang()]);
+export async function PaperHeader({
+  forceLang,
+  showLangToggle = true,
+}: {
+  /** Override the language (the entrance forces English). */
+  forceLang?: Lang;
+  /** Hide the language switch (e.g. on the always-English entrance). */
+  showLangToggle?: boolean;
+} = {}) {
+  const [admin, content, cookieLang] = await Promise.all([isAdmin(), readContent(), getLang()]);
+  const lang = forceLang ?? cookieLang;
   const t = (key: string, vars?: Record<string, string | number>) => translate(lang, key, vars);
   const navLabel = (key: string, fallback: string) =>
     lang === "he" ? t(`chrome.nav.${key}`) : (content.texts[navTextKey(key)] ?? fallback);
@@ -31,6 +41,16 @@ export async function PaperHeader() {
   }));
   const leftItems = items.filter((n) => n.side === "left");
   const rightItems = items.filter((n) => n.side === "right");
+
+  // Legal links for the mobile menu (near the language switch).
+  const legalLinks = [
+    { href: "/policies/returns", label: t("chrome.footerReturns") },
+    { href: "/policies/shipping", label: t("chrome.footerShipping") },
+    { href: "/policies/care", label: t("chrome.footerCare") },
+    { href: "/privacy", label: t("chrome.footerPrivacy") },
+    { href: "/terms", label: t("chrome.footerTerms") },
+    { href: "/accessibility", label: t("chrome.footerAccessibility") },
+  ];
 
   const navLink =
     "font-typewriter text-[11px] uppercase tracking-[0.18em] text-ink/65 transition-colors hover:text-ink";
@@ -89,7 +109,7 @@ export async function PaperHeader() {
             )}
           </nav>
           <div className="hidden items-center gap-3.5 text-ink/70 sm:flex">
-            <LanguageToggle />
+            {showLangToggle && <LanguageToggle />}
             <SearchOverlay className="text-ink/70" label={t("chrome.searchShop")} />
             <Link
               href={admin ? "/admin" : "/login"}
@@ -101,7 +121,8 @@ export async function PaperHeader() {
             <CartButton />
           </div>
           <div className="flex items-center gap-3 text-ink/70 sm:hidden">
-            <LanguageToggle />
+            {/* Language switch lives inside the menu on phones (keeps the AAA
+                wordmark centred). */}
             <SearchOverlay className="text-ink/70" label={t("chrome.searchShop")} />
             <CartButton />
             <MobileNav
@@ -116,6 +137,9 @@ export async function PaperHeader() {
               menuLabel={t("chrome.menu")}
               closeLabel={t("chrome.closeMenu")}
               footerNote={t("chrome.madeByHand")}
+              legalLinks={legalLinks}
+              legalHeading={t("chrome.footerLegal")}
+              showLangToggle={showLangToggle}
               links={items.map((n) => ({ href: n.href, label: n.label }))}
             />
           </div>

@@ -19,7 +19,7 @@ export async function PaperFooter() {
   // Hebrew → dictionary; English → admin content text (falls back to English default).
   const text = (key: string, fallback: string, tKey: string) =>
     lang === "he" ? t(tKey) : (content.texts[key] ?? fallback);
-  const email = content.texts["contact.email"] ?? "hello@example.com";
+  const email = content.texts["contact.email"] ?? "aaart2025@gmail.com";
 
   return (
     <footer className="border-t border-ink/15 px-5 pb-8 pt-10 sm:px-8">

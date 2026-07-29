@@ -349,12 +349,19 @@ export function ScrollVideoHero({ texts, header }: ScrollVideoHeroProps = {}) {
         images[i] = img;
       });
 
+    // On phones, stream only every 3rd frame: ~120 images instead of 361 (≈3×
+    // less network + decode). nearestLoaded() fills the gaps during scrub, so
+    // the cover still animates smoothly while the page becomes interactive far
+    // faster and no longer stalls on slower mobile connections.
+    const STRIDE = isMobile ? 3 : 1;
     const order: number[] = [];
     if (startAtEnd) {
-      for (let i = FRAME_COUNT - 1; i >= 1; i--) order.push(i);
+      for (let i = FRAME_COUNT - 1; i >= 1; i -= STRIDE) order.push(i);
     } else {
-      for (let i = 1; i < FRAME_COUNT; i++) order.push(i);
+      for (let i = 1; i < FRAME_COUNT; i += STRIDE) order.push(i);
     }
+    // Always include the final frame so the end state is crisp.
+    if (STRIDE > 1 && !order.includes(FRAME_COUNT - 1)) order.push(FRAME_COUNT - 1);
 
     // First-paint frames: frame 0 for dimensions, plus the last frame if we're
     // landing on the end state, so the correct frame shows immediately.

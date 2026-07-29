@@ -4,7 +4,6 @@ import Link from "next/link"
 import { User } from "lucide-react"
 import { CartButton } from "@/components/cart/cart-button"
 import { SearchOverlay } from "@/components/site/search-overlay"
-import { LanguageToggle } from "@/components/site/language-toggle"
 import { AaaLogo } from "./aaa-logo"
 import { cn } from "@/lib/utils"
 import { useLang } from "@/lib/i18n/context"
@@ -96,7 +95,6 @@ export function SiteHeader({
             ))}
           </nav>
           <div className="flex items-center gap-3 text-ink/70">
-            <LanguageToggle />
             <SearchOverlay className="text-ink/70" iconClassName="h-[18px] w-[18px]" label={t("chrome.search")} />
             <Link href="/login" aria-label={t("chrome.account")} className="transition-colors hover:text-ink">
               <User className="h-[18px] w-[18px]" strokeWidth={1.6} />
