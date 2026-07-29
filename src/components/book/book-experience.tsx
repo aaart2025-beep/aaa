@@ -17,8 +17,6 @@ import {
 import { SECTIONS, findProduct } from "@/lib/book-data"
 import { cn } from "@/lib/utils"
 import { useT } from "@/lib/i18n/context"
-import { useCart } from "@/lib/cart/store"
-import { getProduct, priceInfo } from "@/lib/products"
 
 type Spread =
   | { kind: "intro" }
@@ -32,7 +30,6 @@ const TURN_MS = 900
 
 export function BookExperience({ navItems }: { navItems?: NavLink[] } = {}) {
   const t = useT()
-  const addToBag = useCart((s) => s.add)
   const spreads = useMemo<Spread[]>(
     () => [
       { kind: "intro" },
@@ -463,10 +460,10 @@ export function BookExperience({ navItems }: { navItems?: NavLink[] } = {}) {
                   <ProductSpecPage
                     product={product}
                     onAddToCart={(id) => {
-                      // Add to the REAL shopping cart (book ids match catalog slugs).
-                      const p = getProduct(id)
-                      if (p) addToBag({ slug: p.slug, name: p.name, price: priceInfo(p).price, image: p.images[0] })
+                      // The book has no size picker — open the product page so a
+                      // size is chosen there before adding to the cart.
                       setCart((c) => (c.includes(id) ? c : [...c, id]))
+                      window.location.assign(`/shop/${id}`)
                     }}
                   />
                 </div>

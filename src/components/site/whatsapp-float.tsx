@@ -12,7 +12,7 @@ export async function WhatsAppFloat() {
   const lang = await getLang();
   const t = (k: string, v?: Record<string, string | number>) => translate(lang, k, v);
   return (
-    <div className="fixed bottom-[calc(max(1rem,env(safe-area-inset-bottom))+3.5rem)] right-[max(1rem,env(safe-area-inset-right))] z-[70] print:hidden">
+    <div className="fixed bottom-[calc(max(1rem,env(safe-area-inset-bottom))+3.5rem)] left-[max(1rem,env(safe-area-inset-left))] z-[70] sm:left-auto sm:right-[max(1rem,env(safe-area-inset-right))] print:hidden">
       <a
         href={WHATSAPP_URL}
         target="_blank"

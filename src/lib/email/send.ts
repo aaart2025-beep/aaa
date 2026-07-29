@@ -5,7 +5,10 @@
 const KEY = process.env.RESEND_API_KEY;
 export const emailEnabled = Boolean(KEY);
 export const NOTIFY = process.env.NOTIFY_EMAIL ?? "";
-const FROM = "AAA — Wearable Art <orders@artbyaaa.com>";
+// Sender. Override with EMAIL_FROM once the domain is verified in Resend; until
+// then Resend's shared "onboarding@resend.dev" works (it can email the account
+// owner, e.g. the studio's own inbox).
+const FROM = process.env.EMAIL_FROM ?? "AAA — Wearable Art <onboarding@resend.dev>";
 
 export interface EmailMessage {
   to: string;

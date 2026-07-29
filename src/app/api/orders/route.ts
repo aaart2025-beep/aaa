@@ -101,16 +101,27 @@ export async function POST(req: Request) {
     fulfillmentStatus: "new",
   };
 
+  // Persist durably when storage is configured (Vercel Blob). If it isn't —
+  // or the write fails — we don't fail the order: the email below still
+  // delivers the full order to the studio.
+  let saved = true;
   try {
     await appendOrder(order);
-  } catch {
+  } catch (e) {
+    saved = false;
+    console.error("order save failed (continuing to email):", e);
+  }
+
+  const emailed = await sendOrderEmails(order); // best-effort; never throws
+
+  // Only fail the checkout if the order was neither saved nor emailed — then the
+  // client shows its "email the studio directly" fallback so nothing is lost.
+  if (!saved && !emailed) {
     return NextResponse.json(
-      { ok: false, error: "We couldn't save your order. Please try again or message the studio." },
+      { ok: false, error: "We couldn't reach the studio's order system." },
       { status: 503, headers: cors },
     );
   }
-
-  await sendOrderEmails(order); // best-effort by contract; never throws
 
   return NextResponse.json({ ok: true, id: order.id, subtotal }, { headers: cors });
 }

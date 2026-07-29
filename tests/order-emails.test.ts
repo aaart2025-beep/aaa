@@ -32,7 +32,8 @@ describe("sendOrderEmails", () => {
 
   it("never throws even when the transport rejects", async () => {
     vi.mocked(sendEmail).mockRejectedValueOnce(new Error("down"));
-    await expect(sendOrderEmails(order)).resolves.toBeUndefined();
+    // Resolves (doesn't throw) and reports whether the studio alert was sent.
+    await expect(sendOrderEmails(order)).resolves.toEqual(expect.any(Boolean));
   });
 });
 

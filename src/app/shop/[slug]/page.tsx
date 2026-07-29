@@ -217,7 +217,7 @@ export default async function ProductPage({ params }: PageProps) {
 
           {/* the piece — centred and large in the middle, floating on the paper.
               Grows to fill on tall screens, never crushed below the floor. */}
-          <div className="relative flex min-h-[clamp(320px,46vh,540px)] flex-1 flex-col border-t border-ink/60 py-4">
+          <div className="relative flex min-h-[clamp(420px,62vh,760px)] flex-1 flex-col border-t border-ink/60 py-3">
             <SpecImage name={product.name} views={views} />
             {/* a working drawing inked into the sheet's margin */}
             <SketchDoodle

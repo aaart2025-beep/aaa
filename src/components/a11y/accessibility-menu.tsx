@@ -110,14 +110,14 @@ export function AccessibilityMenu() {
   }, [open]);
 
   return (
-    <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[70] print:hidden">
+    <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-[max(1rem,env(safe-area-inset-left))] z-[70] sm:left-auto sm:right-[max(1rem,env(safe-area-inset-right))] print:hidden">
       {open && (
         <div
           ref={panelRef}
           role="dialog"
           aria-modal="false"
           aria-label={t("pages.a11yMenu.dialogLabel")}
-          className="book-theme absolute bottom-14 right-0 w-[248px] rounded-lg border border-ink/25 bg-paper p-4 shadow-[4px_6px_0_rgba(40,34,24,0.18)]"
+          className="book-theme absolute bottom-14 left-0 w-[248px] rounded-lg border border-ink/25 bg-paper p-4 shadow-[4px_6px_0_rgba(40,34,24,0.18)] sm:left-auto sm:right-0"
         >
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-archivo text-[13px] font-bold uppercase tracking-[0.08em] text-ink">
