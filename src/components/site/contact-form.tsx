@@ -1,12 +1,16 @@
 "use client";
 
 import * as React from "react";
+import { Mail } from "lucide-react";
 import { useT } from "@/lib/i18n/context";
 
-/* On-site contact form. Posts to /api/contact, which saves the message to the
- * studio inbox and emails it. Includes a hidden honeypot ("company") for bots. */
+/* On-site contact form. The green button carries the studio's email address and
+ * IS the submit: typing a message and pressing it posts to /api/contact, which
+ * saves the message to the studio inbox and emails it to the business address.
+ * A hidden honeypot ("company") traps bots. A plain mailto fallback is offered
+ * for anyone who prefers their own mail app. */
 
-export function ContactForm() {
+export function ContactForm({ email }: { email: string }) {
   const t = useT();
   const [state, setState] = React.useState<"idle" | "sending" | "sent" | "error">("idle");
   const [form, setForm] = React.useState({ name: "", email: "", phone: "", subject: "", message: "", company: "" });
@@ -68,11 +72,11 @@ export function ContactForm() {
         </label>
         <label className="flex flex-col gap-1">
           <span className="font-typewriter text-[10px] uppercase tracking-[0.14em] text-ink/60">{t("contactForm.email")}</span>
-          <input required type="email" value={form.email} onChange={set("email")} className={field} />
+          <input required type="email" inputMode="email" value={form.email} onChange={set("email")} className={field} />
         </label>
         <label className="flex flex-col gap-1">
           <span className="font-typewriter text-[10px] uppercase tracking-[0.14em] text-ink/60">{t("contactForm.phone")}</span>
-          <input value={form.phone} onChange={set("phone")} className={field} />
+          <input value={form.phone} onChange={set("phone")} inputMode="tel" className={field} />
         </label>
         <label className="flex flex-col gap-1">
           <span className="font-typewriter text-[10px] uppercase tracking-[0.14em] text-ink/60">{t("contactForm.subject")}</span>
@@ -85,17 +89,28 @@ export function ContactForm() {
         <textarea required rows={5} value={form.message} onChange={set("message")} className={`${field} resize-y`} />
       </label>
 
-      {state === "error" && (
-        <p className="font-typewriter text-[12px] text-red-700">{t("contactForm.error")}</p>
-      )}
+      {state === "error" && <p className="font-typewriter text-[12px] text-red-700">{t("contactForm.error")}</p>}
 
+      {/* the green button carries the address and sends the message in-site */}
       <button
         type="submit"
         disabled={state === "sending"}
-        className="chip-lime font-archivo mt-1 self-start px-7 py-3 text-[12px] font-bold uppercase tracking-[0.18em] disabled:opacity-50"
+        className="chip-lime font-typewriter mt-1 inline-flex items-center justify-center gap-2 self-center px-6 py-3 text-[11px] uppercase tracking-[0.16em] disabled:opacity-50"
       >
-        {state === "sending" ? t("contactForm.sending") : t("contactForm.send")}
+        <Mail className="h-4 w-4" strokeWidth={1.8} />
+        {state === "sending" ? t("contactForm.sending") : email}
       </button>
+      <p className="font-typewriter text-center text-[9px] uppercase tracking-[0.14em] text-ink/50">
+        {t("contactForm.sendHint")}
+      </p>
+
+      {/* fallback: open the visitor's own mail app instead */}
+      <a
+        href={`mailto:${email}?subject=${encodeURIComponent("Hello AAA")}`}
+        className="font-typewriter text-center text-[10px] uppercase tracking-[0.14em] text-ink/50 underline decoration-ink/25 underline-offset-2 transition-colors hover:text-ink"
+      >
+        {t("contactForm.orMailApp")}
+      </a>
     </form>
   );
 }

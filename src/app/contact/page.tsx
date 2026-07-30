@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Mail } from "lucide-react";
 import { InstagramIcon, WhatsappIcon } from "@/components/paper/social-icons";
 import { readContent } from "@/lib/content/store";
 import { getLang } from "@/lib/i18n/server";
@@ -45,29 +44,28 @@ export default async function ContactPage() {
           )} />
         </p>
 
-        {/* the note card */}
-        <Reveal className="relative mt-12 w-full max-w-md rotate-[-0.8deg] bg-paper px-7 py-9 shadow-paper">
+        {/* the note card — the on-site contact form; the green button sends the
+            typed message straight to the studio inbox + business email */}
+        <Reveal className="relative mt-12 w-full max-w-xl rotate-[-0.4deg] bg-paper px-6 py-9 shadow-paper sm:px-8">
           <Paperclip className="absolute -top-6 left-1/2 z-10 h-12 w-6 -translate-x-1/2 drop-shadow-sm" />
           <StitchMarks className="absolute right-4 top-3 h-3 w-9" />
 
-          <p className="font-typewriter text-[9px] uppercase tracking-[0.26em] text-ink/70">
-            {text("contact.cardLabel", "Preferred channel")}
+          <p className="font-typewriter text-center text-[9px] uppercase tracking-[0.26em] text-ink/70">
+            {text("contact.cardLabel", "Write to the studio")}
           </p>
-          <a
-            href={`mailto:${email}?subject=${encodeURIComponent("Hello AAA")}`}
-            className="chip-lime font-typewriter mt-4 inline-flex items-center gap-2 px-6 py-3 text-[11px] uppercase tracking-[0.18em]"
-          >
-            <Mail className="h-4 w-4" strokeWidth={1.8} />
-            {email}
-          </a>
+
           <div className="mt-5">
+            <ContactForm email={email} />
+          </div>
+
+          <div className="mt-6 text-center">
             <HandNote rot={-2} className="text-[17px]">
               <InkedText text={text("contact.note", "replies within a day — usually with sketches")} mode="script" speed={30} startDelay={600} />
             </HandNote>
           </div>
 
           <div className="mt-7 border-t border-ink/15 pt-5">
-            <p className="font-typewriter text-[9px] uppercase tracking-[0.26em] text-ink/70">
+            <p className="font-typewriter text-center text-[9px] uppercase tracking-[0.26em] text-ink/70">
               {text("contact.socialLabel", "Or find the studio here")}
             </p>
             <div className="mt-3 flex items-center justify-center gap-4 text-ink/65">
@@ -80,14 +78,6 @@ export default async function ContactPage() {
             </div>
           </div>
         </Reveal>
-
-        {/* on-site contact form — saved to the studio inbox and emailed */}
-        <div className="mt-12 w-full max-w-xl">
-          <p className="font-typewriter mb-4 text-center text-[9px] uppercase tracking-[0.26em] text-ink/70">
-            {t("contactForm.heading")}
-          </p>
-          <ContactForm />
-        </div>
 
         {/* a page from the sketchbook, left on the desk beside the note */}
         <div className="mt-10 flex justify-center">

@@ -127,6 +127,15 @@ export function ScrollVideoHero({ texts, header }: ScrollVideoHeroProps = {}) {
     const startAtEnd = window.location.hash === "#enter";
     // Choose the frame set once, at mount, by viewport width.
     const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
+    // iPads / touch tablets report a coarse pointer (iPadOS Safari also reports as
+    // "Mac" but with touch points). They must NOT load all 361 full-res frames —
+    // that exhausts Safari's memory and blanks the page. Give them the phone's
+    // lighter path (decimated frames, lower dpr, softer blur). The frame SET still
+    // follows width, so a landscape iPad keeps the landscape cover.
+    const isTouch =
+      (typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches) ||
+      (navigator.maxTouchPoints ?? 0) > 1;
+    const lite = isMobile || isTouch;
     const frameSrc = isMobile ? framePathMobile : framePath;
 
     // Black intro screen holds for ~one viewport of scroll before the video scrubs.
@@ -139,7 +148,7 @@ export function ScrollVideoHero({ texts, header }: ScrollVideoHeroProps = {}) {
       // Full native pixel density (capped at 3×) with high-quality resampling:
       // the 1080p frames render at the screen's true resolution. One drawImage
       // per frame change keeps this cheap even at retina sizes.
-      const dpr = Math.min(window.devicePixelRatio || 1, 3);
+      const dpr = Math.min(window.devicePixelRatio || 1, lite ? 2 : 3);
       canvas.width = Math.round(window.innerWidth * dpr);
       canvas.height = Math.round(window.innerHeight * dpr);
       ctx.imageSmoothingQuality = "high";
@@ -174,7 +183,7 @@ export function ScrollVideoHero({ texts, header }: ScrollVideoHeroProps = {}) {
     const updateTarget = () => {
       rawScrollY = window.scrollY;
     };
-    const BLUR_MAX = isMobile ? 14 : 34; // full-screen blur is costly on phones
+    const BLUR_MAX = lite ? 14 : 34; // full-screen blur is costly on phones/tablets
 
     const tick = (now: number) => {
       let dt = (now - lastT) / 1000;
@@ -353,7 +362,7 @@ export function ScrollVideoHero({ texts, header }: ScrollVideoHeroProps = {}) {
     // less network + decode). nearestLoaded() fills the gaps during scrub, so
     // the cover still animates smoothly while the page becomes interactive far
     // faster and no longer stalls on slower mobile connections.
-    const STRIDE = isMobile ? 3 : 1;
+    const STRIDE = lite ? 3 : 1;
     const order: number[] = [];
     if (startAtEnd) {
       for (let i = FRAME_COUNT - 1; i >= 1; i -= STRIDE) order.push(i);
