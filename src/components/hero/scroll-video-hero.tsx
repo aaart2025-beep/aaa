@@ -533,17 +533,39 @@ export function ScrollVideoHero({ texts, header }: ScrollVideoHeroProps = {}) {
         startAutoplay();
       }
     };
-    // Click / tap the opening screen to play the whole sequence (the primary
-    // way in — a scroll/swipe still works too, but the intro invites a tap).
+    // Tap / click the opening screen to enter. With Reduce Motion enabled
+    // (common on iPads) — or if the scroll track is too short to animate — jump
+    // straight to the end state instead of running the scroll autopilot, so a
+    // tap ALWAYS gets the visitor in. Otherwise fly the cinematic autoplay.
+    const enterInstant = () => {
+      const endY = maxScrollY();
+      window.scrollTo(0, endY);
+      rawScrollY = endY;
+      smoothScroll = endY;
+      scrollVel = 0;
+      needsDraw = true;
+      updateTarget();
+      wake();
+    };
     const onIntroActivate = () => {
-      if (autoplayArmed()) startAutoplay();
+      if (autoplaying || rewinding) return;
+      if (reduceMotion || maxScrollY() < 8) enterInstant();
+      else startAutoplay();
     };
     const introEl = introRef.current;
     introEl?.addEventListener("click", onIntroActivate);
+    // iOS occasionally suppresses the synthetic click on a fixed overlay — bind
+    // touchend as a reliable fallback so the tap is never swallowed.
+    introEl?.addEventListener("touchend", onIntroActivate);
 
     window.addEventListener("wheel", onWheelAuto, { passive: false });
     window.addEventListener("touchstart", onTouchStartAuto, { passive: true });
     window.addEventListener("touchmove", onTouchMoveAuto, { passive: false });
+
+    // Hard fail-safe: never leave a device stuck on the black loader if frame
+    // loading stalls (seen on iPad Safari) — reveal the cover no later than 4s
+    // after mount, regardless of how many frames have arrived.
+    const failSafeReveal = window.setTimeout(reveal, 4000);
 
     wake();
 
@@ -607,12 +629,14 @@ export function ScrollVideoHero({ texts, header }: ScrollVideoHeroProps = {}) {
       window.clearTimeout(readyTimer);
       window.clearTimeout(revealTimer);
       window.clearTimeout(rewindTimer);
+      window.clearTimeout(failSafeReveal);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("wheel", onWheelAuto);
       window.removeEventListener("touchstart", onTouchStartAuto);
       window.removeEventListener("touchmove", onTouchMoveAuto);
       introEl?.removeEventListener("click", onIntroActivate);
+      introEl?.removeEventListener("touchend", onIntroActivate);
     };
   }, []);
 
