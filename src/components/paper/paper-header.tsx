@@ -22,11 +22,14 @@ import type { Lang } from "@/lib/i18n/config";
 export async function PaperHeader({
   forceLang,
   showLangToggle = true,
+  showMobileMenu = true,
 }: {
   /** Override the language (the entrance forces English). */
   forceLang?: Lang;
   /** Hide the language switch (e.g. on the always-English entrance). */
   showLangToggle?: boolean;
+  /** Hide the mobile hamburger menu (e.g. on the entrance/cover, before the shop). */
+  showMobileMenu?: boolean;
 } = {}) {
   const [admin, content, cookieLang] = await Promise.all([isAdmin(), readContent(), getLang()]);
   const lang = forceLang ?? cookieLang;
@@ -126,23 +129,25 @@ export async function PaperHeader({
                 wordmark centred). */}
             <SearchOverlay className="text-ink/70" label={t("chrome.searchShop")} />
             <CartButton />
-            <MobileNav
-              tone="light"
-              admin={admin}
-              showHome
-              homeLabel={navLabel("home", "Home")}
-              homeHref="/#enter"
-              loginHref={admin ? "/admin" : "/login"}
-              loginLabel={admin ? t("chrome.console") : t("chrome.login")}
-              adminLabel={t("chrome.adminConsole")}
-              menuLabel={t("chrome.menu")}
-              closeLabel={t("chrome.closeMenu")}
-              footerNote={t("chrome.madeByHand")}
-              legalLinks={legalLinks}
-              legalHeading={t("chrome.footerLegal")}
-              showLangToggle={showLangToggle}
-              links={items.map((n) => ({ href: n.href, label: n.label }))}
-            />
+            {showMobileMenu && (
+              <MobileNav
+                tone="light"
+                admin={admin}
+                showHome
+                homeLabel={navLabel("home", "Home")}
+                homeHref="/#enter"
+                loginHref={admin ? "/admin" : "/login"}
+                loginLabel={admin ? t("chrome.console") : t("chrome.login")}
+                adminLabel={t("chrome.adminConsole")}
+                menuLabel={t("chrome.menu")}
+                closeLabel={t("chrome.closeMenu")}
+                footerNote={t("chrome.madeByHand")}
+                legalLinks={legalLinks}
+                legalHeading={t("chrome.footerLegal")}
+                showLangToggle={showLangToggle}
+                links={items.map((n) => ({ href: n.href, label: n.label }))}
+              />
+            )}
           </div>
         </div>
       </div>

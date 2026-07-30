@@ -16,7 +16,7 @@ export default async function Home() {
       <div dir="ltr">
         <ScrollVideoHero
           texts={content.texts}
-          header={<PaperHeader forceLang="en" showLangToggle={false} />}
+          header={<PaperHeader forceLang="en" showLangToggle={false} showMobileMenu={false} />}
         />
       </div>
     </LanguageProvider>

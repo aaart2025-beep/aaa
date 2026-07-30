@@ -31,6 +31,13 @@ async function post(msg: EmailMessage): Promise<boolean> {
       ...(msg.replyTo ? { reply_to: msg.replyTo } : {}),
     }),
   });
+  // Surface WHY Resend rejected a send (e.g. unverified domain, or test-mode
+  // recipient restriction) in the Vercel function logs — otherwise failures are
+  // silent and impossible to diagnose.
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    console.error(`Resend ${res.status} sending "${msg.subject}" -> ${msg.to} (from ${FROM}): ${detail.slice(0, 400)}`);
+  }
   return res.ok;
 }
 
