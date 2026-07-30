@@ -10,6 +10,7 @@ import { PaperFooter, INSTAGRAM_URL, WHATSAPP_URL } from "@/components/paper/pap
 import { HandNote, Paperclip, StitchMarks } from "@/components/paper/annotations";
 import { SketchDoodle } from "@/components/paper/sketch-doodle";
 import { InkedText, Reveal } from "@/components/paper/inked";
+import { ContactForm } from "@/components/site/contact-form";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,14 @@ export default async function ContactPage() {
             </div>
           </div>
         </Reveal>
+
+        {/* on-site contact form — saved to the studio inbox and emailed */}
+        <div className="mt-12 w-full max-w-xl">
+          <p className="font-typewriter mb-4 text-center text-[9px] uppercase tracking-[0.26em] text-ink/70">
+            {t("contactForm.heading")}
+          </p>
+          <ContactForm />
+        </div>
 
         {/* a page from the sketchbook, left on the desk beside the note */}
         <div className="mt-10 flex justify-center">

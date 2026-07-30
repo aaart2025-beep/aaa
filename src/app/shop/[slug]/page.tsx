@@ -219,11 +219,8 @@ export default async function ProductPage({ params }: PageProps) {
               Grows to fill on tall screens, never crushed below the floor. */}
           <div className="relative flex min-h-[clamp(360px,50vh,480px)] flex-1 flex-col border-t border-ink/60 py-3 sm:min-h-[clamp(420px,62vh,760px)]">
             <SpecImage name={product.name} views={views} />
-            {product.soldOut && (
-              <span className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 -rotate-[12deg] whitespace-nowrap rounded border-[3px] border-red-600/80 bg-paper/55 px-4 py-1.5 font-archivo text-[clamp(1rem,4.5vw,1.7rem)] font-extrabold uppercase tracking-[0.18em] text-red-600 shadow-[3px_3px_0_rgba(40,34,24,0.2)]">
-                {t("shop.soldOut")}
-              </span>
-            )}
+            {/* sold-out is shown as a stamp beside the price below — never over
+                the piece on the product page, so the garment stays fully visible */}
             {/* a working drawing inked into the sheet's margin */}
             <SketchDoodle
               complexity="simple"
@@ -249,9 +246,16 @@ export default async function ProductPage({ params }: PageProps) {
                 <span className="bg-red-600 px-1.5 py-0.5 font-bold text-white">{t("shop.offBadge", { pct: discountPct })}</span>
               </p>
             ) : null}
-            {product.onePiece ? (
+            {product.onePiece && !product.soldOut ? (
               <p className="font-typewriter mb-2 text-[11px] uppercase tracking-[0.16em] text-ink/70">
                 <span aria-hidden>✶ </span>{t("shop.onePiece")}
+              </p>
+            ) : null}
+            {product.soldOut ? (
+              <p className="mb-2">
+                <span className="inline-block -rotate-[4deg] rounded border-2 border-red-600/80 bg-paper px-3 py-1 font-archivo text-[13px] font-extrabold uppercase tracking-[0.16em] text-red-600 shadow-[2px_2px_0_rgba(40,34,24,0.2)]">
+                  {t("shop.soldOut")}
+                </span>
               </p>
             ) : null}
             <BuyPanel

@@ -372,12 +372,22 @@ export function AdminConsole({ initialContent, textKeys }: AdminConsoleProps) {
           ) : status ? (
             <span className="text-[12px] text-neutral-400">{status}</span>
           ) : null}
-          <Link
-            href="/admin/orders"
-            className="rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-[13px] font-medium text-amber-200 transition hover:bg-amber-400/20"
-          >
-            Orders &amp; Payments
-          </Link>
+          <nav className="flex flex-wrap items-center gap-1">
+            {[
+              { href: "/admin/orders", label: "Orders" },
+              { href: "/admin/messages", label: "Messages" },
+              { href: "/admin/customers", label: "Customers" },
+              { href: "/admin/media", label: "Media" },
+            ].map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="rounded-lg border border-amber-400/40 bg-amber-400/10 px-2.5 py-1.5 text-[12px] font-medium text-amber-200 transition hover:bg-amber-400/20"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
           <Link href="/" className="hidden text-[13px] text-neutral-400 hover:text-white sm:inline">
             View site
           </Link>

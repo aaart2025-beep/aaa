@@ -1,34 +1,28 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/auth";
-import { readOrders } from "@/lib/orders/store";
-import { OrderList } from "@/components/admin/order-list";
-import { OrdersSummary } from "@/components/admin/orders-summary";
+import { readMessages } from "@/lib/messages/store";
+import { MessageList } from "@/components/admin/message-list";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { PaperShell } from "@/components/paper/paper-shell";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
-  title: "Orders — AAA Admin",
+  title: "Messages — AAA Admin",
   robots: { index: false, follow: false },
 };
 
-export default async function AdminOrdersPage() {
+export default async function AdminMessagesPage() {
   if (!(await isAdmin())) redirect("/login");
 
-  const orders = (await readOrders()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const messages = (await readMessages()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return (
     <PaperShell>
       <div className="mx-auto w-full max-w-4xl px-5 py-10 sm:px-8">
-        <AdminNav active="orders" title="Orders & Dashboard" />
-
+        <AdminNav active="messages" title="Messages" />
         <div className="mt-6">
-          <OrdersSummary orders={orders} />
-        </div>
-
-        <div className="mt-8">
-          <OrderList initial={orders} />
+          <MessageList initial={messages} />
         </div>
       </div>
     </PaperShell>
