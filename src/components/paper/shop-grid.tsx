@@ -94,16 +94,25 @@ function useStickerMotion(ref: React.RefObject<HTMLDivElement | null>, count: nu
 
 export function ShopGrid({ products: allProducts }: { products: Product[] }) {
   const t = useT();
-  const [filter, setFilter] = React.useState<ProductCategory | "All">("All");
+  const [filter, setFilter] = React.useState<ProductCategory | "All" | "Sale">("All");
   const [sort, setSort] = React.useState<SortKey>("featured");
 
   // hidden pieces never show on the live shop
   const products = allProducts.filter((p) => !p.hidden);
+  const onSale = (p: Product) => !!p.discount && p.discount > 0 && p.discount < 100;
+  const hasSale = products.some(onSale);
 
-  const categories = CATEGORY_ORDER.filter(
+  const categories: (ProductCategory | "All" | "Sale")[] = CATEGORY_ORDER.filter(
     (c) => c === "All" || products.some((p) => p.category === c),
   );
-  const filtered = filter === "All" ? products : products.filter((p) => p.category === filter);
+  // a "Sale" filter appears only when something is actually discounted
+  if (hasSale) categories.push("Sale");
+  const filtered =
+    filter === "All"
+      ? products
+      : filter === "Sale"
+        ? products.filter(onSale)
+        : products.filter((p) => p.category === filter);
   const visible = sortProducts(filtered, sort);
 
   const gridRef = React.useRef<HTMLDivElement>(null);
@@ -122,8 +131,14 @@ export function ShopGrid({ products: allProducts }: { products: Product[] }) {
       >
         <span className="font-typewriter mr-1 shrink-0 text-[10px] uppercase tracking-[0.22em] text-ink/70">{t("shop.filterLabel")}</span>
         {categories.map((c) => (
-          <button key={c} type="button" aria-pressed={filter === c} onClick={() => setFilter(c)} className={chipCls}>
-            {t(CATEGORY_KEY[c])}
+          <button
+            key={c}
+            type="button"
+            aria-pressed={filter === c}
+            onClick={() => setFilter(c)}
+            className={`${chipCls}${c === "Sale" ? " text-red-700" : ""}`}
+          >
+            {c === "Sale" ? t("shop.catSale") : t(CATEGORY_KEY[c])}
           </button>
         ))}
         <span aria-hidden className="mx-1.5 h-4 w-px shrink-0 bg-ink/30" />

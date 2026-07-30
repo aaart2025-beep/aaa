@@ -12,6 +12,7 @@ export const shop: Record<Lang, Record<string, string>> = {
     "shop.catHeadwear": "Headwear",
     "shop.catFootwear": "Footwear",
     "shop.catArtObject": "Art Object",
+    "shop.catSale": "Sale",
 
     /* ---- shop landing ---- */
     "shop.eyebrow": "AAA — The Shop",
@@ -159,6 +160,7 @@ export const shop: Record<Lang, Record<string, string>> = {
     "shop.catHeadwear": "כובעים",
     "shop.catFootwear": "הנעלה",
     "shop.catArtObject": "אובייקט אמנות",
+    "shop.catSale": "מבצע",
 
     /* ---- shop landing ---- */
     "shop.eyebrow": "AAA — החנות",

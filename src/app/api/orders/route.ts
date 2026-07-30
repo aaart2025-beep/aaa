@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     if (!p) continue;
     const qty = Math.max(1, Math.min(99, Math.floor(Number(it.qty) || 1)));
     const variant = str(it.variant) || undefined;
-    items.push({ slug, name: p.name, variant, price: p.price, qty });
+    items.push({ slug, name: p.name, variant, price: p.price, qty, image: p.images?.[0] });
   }
   if (items.length === 0) {
     return NextResponse.json({ ok: false, error: "No valid items in the order." }, { status: 422, headers: cors });

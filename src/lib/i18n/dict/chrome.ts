@@ -79,7 +79,7 @@ export const chrome: Record<Lang, Record<string, string>> = {
     "chrome.switchToEnglish": "English",
   },
   he: {
-    "chrome.estHandmade": "עבודת_יד",
+    "chrome.estHandmade": "עבודת יד",
     "chrome.nav.home": "בית",
     "chrome.nav.shop": "חנות",
     "chrome.nav.collections": "קולקציות",

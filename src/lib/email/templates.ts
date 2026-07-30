@@ -37,6 +37,12 @@ const ils = (n: number) => `₪${n % 1 === 0 ? n : n.toFixed(2)}`;
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
+/* Public base for item images — they're stored as site-relative paths
+ * (/products/… or /api/media/…), but email clients need absolute URLs. */
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? BRAND.site).replace(/\/$/, "");
+const abs = (src?: string): string =>
+  !src ? "" : /^https?:/i.test(src) ? src : `${SITE}${src.startsWith("/") ? "" : "/"}${src}`;
+
 /** Branded page wrapper: cream sheet, centred logo, then the body. `dir`
  * flips alignment for the Hebrew blocks. */
 function shell(bodyHtml: string): string {
@@ -61,17 +67,23 @@ function shell(bodyHtml: string): string {
 function itemsTable(order: Order, lang: "he" | "en"): string {
   const rtl = lang === "he";
   const totalLabel = rtl ? "סה״כ" : "Total";
+  const namePad = rtl ? "padding-right:10px" : "padding-left:10px";
   const rows = order.items
-    .map(
-      (i) => `<tr>
-  <td style="padding:6px 0;font-size:14px">${esc(i.name)}${i.variant ? ` — ${esc(i.variant)}` : ""}${i.qty > 1 ? ` ×${i.qty} @ ${ils(i.price)}` : ""}</td>
-  <td style="padding:6px 0;font-size:14px;text-align:${rtl ? "left" : "right"};white-space:nowrap">${ils(i.price * i.qty)}</td>
-</tr>`,
-    )
+    .map((i) => {
+      const img = abs(i.image);
+      const imgCell = img
+        ? `<td width="48" style="width:48px;padding:6px 0;vertical-align:middle"><img src="${img}" alt="" width="44" height="44" style="width:44px;height:44px;object-fit:contain;border:1px solid ${BRAND.line};border-radius:6px;background:#ffffff" /></td>`
+        : `<td width="48" style="width:48px"></td>`;
+      return `<tr>
+  ${imgCell}
+  <td style="padding:6px 0;${namePad};font-size:14px;vertical-align:middle">${esc(i.name)}${i.variant ? ` — ${esc(i.variant)}` : ""}${i.qty > 1 ? ` ×${i.qty} @ ${ils(i.price)}` : ""}</td>
+  <td style="padding:6px 0;font-size:14px;text-align:${rtl ? "left" : "right"};white-space:nowrap;vertical-align:middle">${ils(i.price * i.qty)}</td>
+</tr>`;
+    })
     .join("");
   return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;width:100%;margin-top:6px" dir="${rtl ? "rtl" : "ltr"}">${rows}
 <tr>
-  <td style="padding:10px 0 0;border-top:1px solid ${BRAND.line};font-size:14px"><strong>${totalLabel}</strong></td>
+  <td colspan="2" style="padding:10px 0 0;border-top:1px solid ${BRAND.line};font-size:14px"><strong>${totalLabel}</strong></td>
   <td style="padding:10px 0 0;border-top:1px solid ${BRAND.line};text-align:${rtl ? "left" : "right"};font-size:14px"><strong>${ils(order.subtotal)}</strong></td>
 </tr></table>`;
 }
@@ -84,12 +96,16 @@ function itemsText(order: Order): string {
 
 /** Customer confirmation — Hebrew first, then English. */
 export function orderReceiptEmail(order: Order): EmailContent {
-  const name = esc(order.customer.name);
+  const c = order.customer;
+  const name = esc(c.name);
+  const detailsHe = `<p style="margin:14px 0 0;font-size:13px;line-height:1.7;color:${BRAND.muted}">הפרטים שלך: ${esc(c.name)} · ${esc(c.email)}${c.phone ? ` · ${esc(c.phone)}` : ""}${c.address ? `<br>כתובת למשלוח: ${esc(c.address)}` : ""}</p>`;
+  const detailsEn = `<p style="margin:14px 0 0;font-size:13px;line-height:1.7;color:${BRAND.muted}">Your details: ${esc(c.name)} · ${esc(c.email)}${c.phone ? ` · ${esc(c.phone)}` : ""}${c.address ? `<br>Shipping to: ${esc(c.address)}` : ""}</p>`;
 
   const he = `<div dir="rtl" style="text-align:right">
   <h2 style="margin:0 0 8px;font-size:20px">תודה על הזמנתך, ${name}!</h2>
   <p style="margin:0 0 4px;font-size:14px;line-height:1.7">הזמנה <strong>${order.id}</strong> — ניצור איתך קשר לגבי התשלום והמשלוח.</p>
   ${itemsTable(order, "he")}
+  ${detailsHe}
   <p style="margin:16px 0 0;font-size:14px;line-height:1.7">שאלות? אפשר פשוט להשיב למייל הזה.</p>
 </div>`;
 
@@ -97,6 +113,7 @@ export function orderReceiptEmail(order: Order): EmailContent {
   <h2 style="margin:0 0 8px;font-size:20px">Thanks for your order, ${name}!</h2>
   <p style="margin:0 0 4px;font-size:14px;line-height:1.7">Order <strong>${order.id}</strong> — we'll be in touch about payment and delivery.</p>
   ${itemsTable(order, "en")}
+  ${detailsEn}
   <p style="margin:16px 0 0;font-size:14px;line-height:1.7">Questions? Just reply to this email.</p>
 </div>`;
 

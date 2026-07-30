@@ -21,9 +21,11 @@ export interface OrderItem {
   name: string;
   /** e.g. a size like "M" or "US 9" */
   variant?: string;
-  /** unit price in USD (server-recomputed from the catalog) */
+  /** unit price in ILS (server-recomputed from the catalog) */
   price: number;
   qty: number;
+  /** cover image path for the piece (shown in emails / admin) */
+  image?: string;
 }
 
 export interface OrderCustomer {
