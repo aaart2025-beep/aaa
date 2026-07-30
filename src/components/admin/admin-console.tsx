@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { SiteContent, ContentProduct, ContentCollection } from "@/lib/content/types";
+import type { SiteContent, ContentProduct, ContentCollection, SizeGuide } from "@/lib/content/types";
 import { LivePreview, type PreviewPage } from "@/components/admin/live-preview";
 import { ProductRow } from "@/components/admin/product-editor";
 import { Field, ImageManager, SectionHeading, inputCls, slugify, CollectionDndContext, type ImageDragRef } from "@/components/admin/admin-ui";
@@ -41,7 +41,7 @@ const TEXT_SECTIONS: TextSection[] = [
 const NAV_GROUPS: NavGroup[] = [
   { label: "Catalog", ids: ["products", "collections"] },
   { label: "Pages", ids: ["home", "shop", "create", "collection", "about", "contact", "login"] },
-  { label: "Site", ids: ["menu", "brand", "product-page", "footer", "other"] },
+  { label: "Site", ids: ["menu", "brand", "product-page", "sizeGuide", "footer", "other"] },
 ];
 
 const LABELS: Record<string, { label: string; hint?: string }> = {
@@ -188,6 +188,7 @@ export function AdminConsole({ initialContent, textKeys }: AdminConsoleProps) {
     m.set("products", { label: "Products", href: "/shop" });
     m.set("collections", { label: "Collections", href: "/collection" });
     m.set("menu", { label: "Navigation", href: "/shop" });
+    m.set("sizeGuide", { label: "Size Guide", href: "/policies/sizes" });
     m.set("other", { label: "Other text", href: "/" });
     return m;
   }, []);
@@ -299,6 +300,8 @@ export function AdminConsole({ initialContent, textKeys }: AdminConsoleProps) {
     });
   const setNavVisible = (key: string, visible: boolean) =>
     mutate((c) => ({ ...c, navVisible: { ...(c.navVisible ?? {}), [key]: visible } }));
+  const setSizeGuide = (updater: (sg: SizeGuide) => SizeGuide) =>
+    mutate((c) => ({ ...c, sizeGuide: updater(c.sizeGuide ?? { intro: "", rows: [] }) }));
   const addCollection = () =>
     mutate((c) => {
       c.collections.push({
@@ -627,6 +630,11 @@ export function AdminConsole({ initialContent, textKeys }: AdminConsoleProps) {
                   </p>
                 </div>
               )}
+
+              {/* SIZE GUIDE — the editable measurements table */}
+              {section === "sizeGuide" && (
+                <SizeGuideEditor guide={content.sizeGuide ?? { intro: "", rows: [] }} onChange={setSizeGuide} />
+              )}
             </div>
           </div>
         </div>
@@ -830,6 +838,85 @@ function CollectionEditor({
         className="mt-3 rounded-lg border border-red-500/30 px-3 py-1.5 text-[12px] text-red-300 hover:bg-red-500/10"
       >
         Delete collection
+      </button>
+    </div>
+  );
+}
+
+/* ============================ size guide ============================ */
+
+function SizeGuideEditor({
+  guide,
+  onChange,
+}: {
+  guide: SizeGuide;
+  onChange: (updater: (sg: SizeGuide) => SizeGuide) => void;
+}) {
+  const rows = guide.rows ?? [];
+  return (
+    <div className="mx-auto flex max-w-2xl flex-col gap-4">
+      <SectionHeading
+        title="Size Guide"
+        desc="The measurements table on the Size Guide page (linked in the footer and on every product page). Add a row per size and type the exact numbers."
+      />
+      <Field label="Intro (optional)" hint="A short line shown above the table.">
+        <textarea
+          value={guide.intro ?? ""}
+          onChange={(e) => onChange((sg) => ({ ...sg, intro: e.target.value }))}
+          rows={2}
+          className={inputCls}
+        />
+      </Field>
+
+      <div className="flex flex-col gap-2">
+        <div className="hidden grid-cols-[7rem_1fr_2.25rem] gap-2 px-1 text-[11px] uppercase tracking-wider text-neutral-500 sm:grid">
+          <span>Size</span>
+          <span>Measurements</span>
+          <span />
+        </div>
+        {rows.map((r, i) => (
+          <div key={i} className="grid grid-cols-[6rem_1fr_2.25rem] items-center gap-2 sm:grid-cols-[7rem_1fr_2.25rem]">
+            <input
+              value={r.size}
+              placeholder="M"
+              onChange={(e) =>
+                onChange((sg) => {
+                  const rr = [...sg.rows];
+                  rr[i] = { ...rr[i], size: e.target.value };
+                  return { ...sg, rows: rr };
+                })
+              }
+              className={inputCls}
+            />
+            <input
+              value={r.measure}
+              placeholder="Chest 54cm · Length 72cm · Sleeve 63cm"
+              onChange={(e) =>
+                onChange((sg) => {
+                  const rr = [...sg.rows];
+                  rr[i] = { ...rr[i], measure: e.target.value };
+                  return { ...sg, rows: rr };
+                })
+              }
+              className={inputCls}
+            />
+            <button
+              onClick={() => onChange((sg) => ({ ...sg, rows: sg.rows.filter((_, k) => k !== i) }))}
+              title="Remove row"
+              className="rounded-md border border-red-500/30 py-2 text-[12px] text-red-300 transition hover:bg-red-500/10"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+        {rows.length === 0 && <p className="text-[13px] text-neutral-500">No sizes yet — add your first row.</p>}
+      </div>
+
+      <button
+        onClick={() => onChange((sg) => ({ ...sg, rows: [...(sg.rows ?? []), { size: "", measure: "" }] }))}
+        className="self-start rounded-lg bg-amber-400 px-4 py-2 text-[13px] font-medium text-neutral-900 transition hover:bg-amber-300"
+      >
+        + Add size
       </button>
     </div>
   );

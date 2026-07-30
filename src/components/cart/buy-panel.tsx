@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useCart } from "@/lib/cart/store";
 import { useT } from "@/lib/i18n/context";
+import { TransitionLink } from "@/components/transition/page-transition";
 
 /* The product buy area: a size selector (when the piece has real size options)
  * plus the price, a "Care & washing" slot and "Add to bag". The selected size
@@ -14,6 +15,7 @@ export function BuyPanel({
   price,
   image,
   sizes,
+  soldOut = false,
   priceSlot,
   careSlot,
 }: {
@@ -23,6 +25,8 @@ export function BuyPanel({
   image?: string;
   /** Buyable sizes; 0–1 entries → no picker shown. */
   sizes: string[];
+  /** Out of stock — the buy button is replaced by a "sold out" state. */
+  soldOut?: boolean;
   priceSlot: React.ReactNode;
   careSlot: React.ReactNode;
 }) {
@@ -33,6 +37,7 @@ export function BuyPanel({
   const [hint, setHint] = React.useState(false);
 
   const onAdd = () => {
+    if (soldOut) return;
     if (needSize && !size) {
       setHint(true);
       return;
@@ -44,8 +49,16 @@ export function BuyPanel({
     <div className="w-full">
       {needSize && (
         <div className="mb-3.5 border-t border-dashed border-ink/30 pt-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="font-archivo text-[11px] font-bold uppercase tracking-[0.16em] text-ink">{t("chrome.size")}</span>
+            <TransitionLink
+              href="/policies/sizes"
+              className="font-typewriter inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-ink/60 underline decoration-ink/30 underline-offset-2 transition-colors hover:text-ink"
+            >
+              {t("shop.sizeGuide")} <span aria-hidden>↗</span>
+            </TransitionLink>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-archivo mr-1 text-[11px] font-bold uppercase tracking-[0.16em] text-ink">{t("chrome.size")}</span>
             {sizes.map((s) => {
               const active = size === s;
               return (
@@ -78,13 +91,22 @@ export function BuyPanel({
         {priceSlot}
         <div className="flex items-center gap-2.5">
           {careSlot}
-          <button
-            type="button"
-            onClick={onAdd}
-            className="chip-lime font-archivo px-7 py-3 text-[12px] font-bold uppercase tracking-[0.18em]"
-          >
-            {t("chrome.addToBag")}
-          </button>
+          {soldOut ? (
+            <span
+              className="font-archivo cursor-not-allowed border-2 border-red-600/70 px-7 py-3 text-[12px] font-bold uppercase tracking-[0.18em] text-red-600"
+              aria-disabled="true"
+            >
+              {t("shop.soldOut")}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={onAdd}
+              className="chip-lime font-archivo px-7 py-3 text-[12px] font-bold uppercase tracking-[0.18em]"
+            >
+              {t("chrome.addToBag")}
+            </button>
+          )}
         </div>
       </div>
     </div>

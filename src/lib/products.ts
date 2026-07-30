@@ -46,6 +46,20 @@ export interface Product {
   discount?: number;
   /** Hidden from the live shop grid (admin can toggle without deleting). */
   hidden?: boolean;
+  /** Per-photo display zoom, keyed by image src (1 = natural). Lets the studio
+   * size each piece so it sits consistently on its note and product page. */
+  imageScale?: Record<string, number>;
+  /** Out of stock — shown with a red "sold out" stamp; can't be added to bag. */
+  soldOut?: boolean;
+  /** A single, one-of-one piece — shown with a "one piece only" mark. */
+  onePiece?: boolean;
+}
+
+/** The display zoom for one image of a product (1 = natural size). */
+export function scaleFor(p: Pick<Product, "imageScale">, src?: string): number {
+  if (!src) return 1;
+  const n = p.imageScale?.[src];
+  return typeof n === "number" && n > 0 ? n : 1;
 }
 
 /** Resolved pricing for a product: the price to charge/show, plus the struck
@@ -741,6 +755,8 @@ export interface ResolvedView {
   src?: string;
   /** Render as a zoomed-in detail crop (auto fabric close-up). */
   zoom?: boolean;
+  /** Studio-set display zoom for this photo (1 = natural). */
+  scale?: number;
 }
 
 const VIEW_LABELS: Record<ViewKey, string> = {
@@ -773,5 +789,6 @@ export function resolveViews(p: Product): ResolvedView[] {
     fig: `Fig. ${String(i + 1).padStart(2, "0")}`,
     src: v.src,
     zoom: v.zoom && Boolean(v.src),
+    scale: scaleFor(p, v.src),
   }));
 }

@@ -30,8 +30,10 @@ export function LanguageProvider({
 
   const setLang = React.useCallback((l: Lang) => {
     setLangState(l);
-    // Persist for a year; path=/ so every route sees it.
-    document.cookie = `${LANG_COOKIE}=${l};path=/;max-age=31536000;samesite=lax`;
+    // Session-scoped (no max-age) so the site always OPENS in English by default
+    // — a visitor's switch to Hebrew lasts only for the current browser session,
+    // then it resets to English. path=/ so every route sees it while it lasts.
+    document.cookie = `${LANG_COOKIE}=${l};path=/;samesite=lax`;
     const root = document.documentElement;
     root.setAttribute("lang", l);
     root.setAttribute("dir", dir(l));

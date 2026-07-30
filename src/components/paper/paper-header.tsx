@@ -46,6 +46,7 @@ export async function PaperHeader({
   const legalLinks = [
     { href: "/policies/returns", label: t("chrome.footerReturns") },
     { href: "/policies/shipping", label: t("chrome.footerShipping") },
+    { href: "/policies/sizes", label: t("chrome.footerSizes") },
     { href: "/policies/care", label: t("chrome.footerCare") },
     { href: "/privacy", label: t("chrome.footerPrivacy") },
     { href: "/terms", label: t("chrome.footerTerms") },

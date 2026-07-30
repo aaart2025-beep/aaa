@@ -203,6 +203,20 @@ export const DEFAULT_COLLECTIONS: ContentCollection[] = [
   },
 ];
 
+/** Starter size guide — the studio replaces the numbers with real ones in the
+ * admin console (Site → Size Guide). Kept generic so the page is never empty. */
+const DEFAULT_SIZE_GUIDE: SiteContent["sizeGuide"] = {
+  intro:
+    "Measurements are approximate — every piece is made by hand. Measure a garment you already own and compare. Questions? Message us and we'll help you pick.",
+  rows: [
+    { size: "XS", measure: "Chest — · Length — · Sleeve —" },
+    { size: "S", measure: "Chest — · Length — · Sleeve —" },
+    { size: "M", measure: "Chest — · Length — · Sleeve —" },
+    { size: "L", measure: "Chest — · Length — · Sleeve —" },
+    { size: "XL", measure: "Chest — · Length — · Sleeve —" },
+  ],
+};
+
 export function defaultContent(): SiteContent {
   // Deep copy so callers can never mutate the seed.
   return structuredClone({
@@ -210,5 +224,6 @@ export function defaultContent(): SiteContent {
     products,
     collections: DEFAULT_COLLECTIONS,
     navVisible: {},
+    sizeGuide: DEFAULT_SIZE_GUIDE,
   });
 }

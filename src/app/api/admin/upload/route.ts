@@ -39,11 +39,15 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const bytes = Buffer.from(await file.arrayBuffer());
-    const result = await put(`products/${Date.now().toString(36)}.jpg`, bytes, {
+    // Keep the real image type so transparent photos (WebP/PNG) stay transparent
+    // — storing them as JPEG would flatten see-through areas to black.
+    const type = /^image\/(jpeg|png|webp)$/.test(file.type) ? file.type : "image/jpeg";
+    const ext = type === "image/webp" ? "webp" : type === "image/png" ? "png" : "jpg";
+    const result = await put(`products/${Date.now().toString(36)}.${ext}`, bytes, {
       access: "private",
       token: TOKEN, // undefined is fine for an OIDC-connected store
       addRandomSuffix: true,
-      contentType: "image/jpeg",
+      contentType: type,
     });
     // Serve the private blob through our same-origin proxy so the storefront
     // (and next/image) can display it without a public store.

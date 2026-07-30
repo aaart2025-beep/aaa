@@ -65,6 +65,13 @@ export const shop: Record<Lang, Record<string, string>> = {
     "shop.designedBy": "Designed by Amit Amar Art",
     "shop.careWashing": "Care & washing",
     "shop.addToCart": "Add to Cart",
+    "shop.soldOut": "Sold out",
+    "shop.onePiece": "One piece only",
+    "shop.sizeGuide": "Size guide",
+    "shop.sizeGuideTitle": "Size Guide",
+    "shop.sizeGuideEmpty": "Size details are coming soon. Message us and we'll help you choose.",
+    "shop.sizeCol": "Size",
+    "shop.measureCol": "Measurements",
     "shop.specSheet": "Spec Sheet",
 
     /* ---- garment values (spec sheet) ---- */
@@ -205,6 +212,13 @@ export const shop: Record<Lang, Record<string, string>> = {
     "shop.designedBy": "עוצב על ידי Amit Amar Art",
     "shop.careWashing": "טיפוח וכביסה",
     "shop.addToCart": "הוספה לעגלה",
+    "shop.soldOut": "אזל המלאי",
+    "shop.onePiece": "פריט יחיד",
+    "shop.sizeGuide": "מדריך מידות",
+    "shop.sizeGuideTitle": "מדריך מידות",
+    "shop.sizeGuideEmpty": "פרטי המידות יתווספו בקרוב. כתבו לנו ונשמח לעזור לכם לבחור.",
+    "shop.sizeCol": "מידה",
+    "shop.measureCol": "מידות",
     "shop.specSheet": "דף מפרט",
 
     /* ---- garment values (spec sheet) ---- */

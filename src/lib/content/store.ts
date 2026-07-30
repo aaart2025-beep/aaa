@@ -18,6 +18,10 @@ function normalize(stored: Partial<SiteContent> | null): SiteContent {
     collections: Array.isArray(stored.collections) ? stored.collections : base.collections,
     navVisible:
       stored.navVisible && typeof stored.navVisible === "object" ? stored.navVisible : {},
+    sizeGuide:
+      stored.sizeGuide && Array.isArray(stored.sizeGuide.rows)
+        ? { intro: stored.sizeGuide.intro, rows: stored.sizeGuide.rows }
+        : base.sizeGuide,
     updatedAt: typeof stored.updatedAt === "string" ? stored.updatedAt : undefined,
   };
 }

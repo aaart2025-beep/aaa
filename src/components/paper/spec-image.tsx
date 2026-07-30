@@ -76,6 +76,7 @@ export function SpecImage({ name, views }: { name: string; views: ResolvedView[]
                 fill
                 sizes="(max-width: 768px) 94vw, 600px"
                 priority={v.key === "front"}
+                style={!v.zoom && v.scale && v.scale !== 1 ? { transform: `scale(${v.scale})` } : undefined}
                 className={cn(
                   v.zoom
                     ? "scale-[2.4] object-cover [object-position:50%_32%]"

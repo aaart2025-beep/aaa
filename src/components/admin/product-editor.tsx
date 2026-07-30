@@ -102,7 +102,14 @@ export function ProductEditor({
       <ImageManager
         images={product.images}
         onChange={(images) => onChange({ images })}
-        note="The first photo is the cover shown in the shop. Reorder with the arrows."
+        note="First photo is the cover. Reorder with the arrows; drag the zoom slider under a photo to size the piece (double-click to reset)."
+        scales={product.imageScale}
+        onScale={(src, scale) => {
+          const next = { ...(product.imageScale ?? {}) };
+          if (scale === 1) delete next[src];
+          else next[src] = scale;
+          onChange({ imageScale: Object.keys(next).length ? next : undefined });
+        }}
       />
 
       <FiveViews product={product} onChange={onChange} />
@@ -133,10 +140,31 @@ export function ProductEditor({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Price (USD)">
+        <Field label="Price (₪)">
           <input type="number" value={product.price} onChange={(e) => onChange({ price: Number(e.target.value) || 0 })} className={inputCls} />
         </Field>
         <DiscountField product={product} onChange={onChange} />
+      </div>
+
+      <div className="flex flex-col gap-2 rounded-lg border border-white/10 bg-white/[0.015] px-3 py-2.5 sm:flex-row sm:flex-wrap sm:gap-5">
+        <label className="flex cursor-pointer items-center gap-2 text-[13px] text-neutral-300">
+          <input
+            type="checkbox"
+            checked={!!product.soldOut}
+            onChange={(e) => onChange({ soldOut: e.target.checked || undefined })}
+            className="h-4 w-4 accent-red-500"
+          />
+          Sold out <span className="text-neutral-500">— red “sold out” stamp; can’t be bought</span>
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-[13px] text-neutral-300">
+          <input
+            type="checkbox"
+            checked={!!product.onePiece}
+            onChange={(e) => onChange({ onePiece: e.target.checked || undefined })}
+            className="h-4 w-4 accent-amber-400"
+          />
+          One piece only <span className="text-neutral-500">— shows a “one piece only” mark</span>
+        </label>
       </div>
 
       <Field label="One-line tagline" hint="Shows as the handwritten note under the product title.">
