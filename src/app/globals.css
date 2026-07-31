@@ -1256,22 +1256,28 @@ html.a11y-reduce-motion *::after {
 /* ------------------------------------------------------------------ */
 .one-piece-glow {
   color: #b0872f; /* delicate antique gold */
-  animation: aaa-one-piece 2.6s ease-in-out infinite;
+}
+/* Each letter lights up in turn — a wave of light sweeping across the word.
+   The stagger comes from a per-letter animation-delay set inline (GlowText). */
+.one-piece-letter {
+  display: inline-block;
+  animation: aaa-one-piece-wave 2.4s ease-in-out infinite both;
   will-change: opacity, text-shadow;
 }
-@keyframes aaa-one-piece {
+@keyframes aaa-one-piece-wave {
   0%,
+  45%,
   100% {
     opacity: 0.5;
     text-shadow: none;
   }
-  50% {
+  16% {
     opacity: 1;
-    text-shadow: 0 0 5px rgba(212, 175, 90, 0.7), 0 0 12px rgba(212, 175, 90, 0.4);
+    text-shadow: 0 0 5px rgba(212, 175, 90, 0.9), 0 0 13px rgba(212, 175, 90, 0.55);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .one-piece-glow {
+  .one-piece-letter {
     animation: none;
     opacity: 1;
   }

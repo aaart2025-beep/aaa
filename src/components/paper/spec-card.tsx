@@ -6,6 +6,7 @@ import { Tape } from "@/components/paper/annotations";
 import { cn } from "@/lib/utils";
 import { priceInfo, scaleFor, type Product } from "@/lib/products";
 import { PaintPrice } from "@/components/paper/paint-price";
+import { GlowText } from "@/components/paper/glow-text";
 import { useT } from "@/lib/i18n/context";
 
 /* A square photo-note taped to the page: the whole note carries one gentle
@@ -92,9 +93,10 @@ export function SpecCard({
         </h3>
         <div className="mt-1 flex items-center justify-between gap-1 sm:gap-1.5">
           {product.onePiece && !product.soldOut ? (
-            <span className="one-piece-glow font-typewriter shrink-0 text-[8.5px] font-semibold uppercase tracking-[0.12em] sm:text-[10px]">
-              {t("shop.onePiece")}
-            </span>
+            <GlowText
+              text={t("shop.onePiece")}
+              className="one-piece-glow font-typewriter shrink-0 text-[8.5px] font-semibold uppercase tracking-[0.12em] sm:text-[10px]"
+            />
           ) : (
             <span aria-hidden />
           )}
