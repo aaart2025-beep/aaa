@@ -247,7 +247,7 @@ export default async function ProductPage({ params }: PageProps) {
               </p>
             ) : null}
             {product.onePiece && !product.soldOut ? (
-              <p className="font-typewriter mb-2 text-[11px] uppercase tracking-[0.16em] text-ink/70">
+              <p className="one-piece-glow font-typewriter mb-2 text-[12px] font-semibold uppercase tracking-[0.16em]">
                 <span aria-hidden>✶ </span>{t("shop.onePiece")}
               </p>
             ) : null}

@@ -92,7 +92,7 @@ export function SpecCard({
         </h3>
         <div className="mt-1 flex items-center justify-between gap-1 sm:gap-1.5">
           {product.onePiece && !product.soldOut ? (
-            <span className="font-typewriter shrink-0 text-[7.5px] uppercase tracking-[0.1em] text-ink/55 sm:text-[8.5px]">
+            <span className="one-piece-glow font-typewriter shrink-0 text-[8.5px] font-semibold uppercase tracking-[0.12em] sm:text-[10px]">
               {t("shop.onePiece")}
             </span>
           ) : (
