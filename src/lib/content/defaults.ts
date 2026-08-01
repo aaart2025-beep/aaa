@@ -217,6 +217,16 @@ const DEFAULT_SIZE_GUIDE: SiteContent["sizeGuide"] = {
   ],
 };
 
+/** Starter shipping — the studio edits labels + prices in the admin
+ * (Site → Checkout). Free over ₪400 by default. */
+const DEFAULT_SHIPPING: SiteContent["shipping"] = {
+  options: [
+    { id: "delivery", label: "Home delivery / משלוח עד הבית", price: 30 },
+    { id: "pickup", label: "Pickup point / נקודת איסוף", price: 20 },
+  ],
+  freeOver: 400,
+};
+
 export function defaultContent(): SiteContent {
   // Deep copy so callers can never mutate the seed.
   return structuredClone({
@@ -225,5 +235,7 @@ export function defaultContent(): SiteContent {
     collections: DEFAULT_COLLECTIONS,
     navVisible: {},
     sizeGuide: DEFAULT_SIZE_GUIDE,
+    coupons: [],
+    shipping: DEFAULT_SHIPPING,
   });
 }

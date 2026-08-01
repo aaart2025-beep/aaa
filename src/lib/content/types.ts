@@ -26,6 +26,31 @@ export interface SizeGuide {
   rows: SizeGuideRow[];
 }
 
+/** A discount code applied at checkout. */
+export interface Coupon {
+  code: string;
+  /** "percent" → value% off the subtotal; "amount" → value ₪ off. */
+  kind: "percent" | "amount";
+  value: number;
+  /** false disables the code without deleting it. */
+  active?: boolean;
+}
+
+/** One shipping choice at checkout. */
+export interface ShippingOption {
+  id: string;
+  label: string;
+  /** cost in ₪ (0 = free). */
+  price: number;
+}
+
+/** Shipping configuration for the checkout. */
+export interface ShippingConfig {
+  options: ShippingOption[];
+  /** Free shipping once the subtotal reaches this many ₪ (0/undefined = never). */
+  freeOver?: number;
+}
+
 /** The full editable content of the site, persisted as JSON. */
 export interface SiteContent {
   texts: Record<string, string>;
@@ -35,6 +60,10 @@ export interface SiteContent {
   navVisible?: Record<string, boolean>;
   /** Editable size guide (measurements per size). */
   sizeGuide?: SizeGuide;
+  /** Discount codes usable at checkout. */
+  coupons?: Coupon[];
+  /** Shipping options + free-shipping threshold. */
+  shipping?: ShippingConfig;
   /** Version stamp set on every save; the save guard compares against it. */
   updatedAt?: string;
 }

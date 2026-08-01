@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { SiteContent, ContentProduct, ContentCollection, SizeGuide } from "@/lib/content/types";
+import type { SiteContent, ContentProduct, ContentCollection, SizeGuide, Coupon, ShippingConfig, ShippingOption } from "@/lib/content/types";
 import { LivePreview, type PreviewPage } from "@/components/admin/live-preview";
 import { ProductRow } from "@/components/admin/product-editor";
 import { Field, ImageManager, SectionHeading, inputCls, slugify, CollectionDndContext, type ImageDragRef } from "@/components/admin/admin-ui";
@@ -41,7 +41,7 @@ const TEXT_SECTIONS: TextSection[] = [
 const NAV_GROUPS: NavGroup[] = [
   { label: "Catalog", ids: ["products", "collections"] },
   { label: "Pages", ids: ["home", "shop", "create", "collection", "about", "contact", "login"] },
-  { label: "Site", ids: ["menu", "brand", "product-page", "sizeGuide", "footer", "other"] },
+  { label: "Site", ids: ["menu", "brand", "product-page", "sizeGuide", "checkout", "footer", "other"] },
 ];
 
 const LABELS: Record<string, { label: string; hint?: string }> = {
@@ -189,6 +189,7 @@ export function AdminConsole({ initialContent, textKeys }: AdminConsoleProps) {
     m.set("collections", { label: "Collections", href: "/collection" });
     m.set("menu", { label: "Navigation", href: "/shop" });
     m.set("sizeGuide", { label: "Size Guide", href: "/policies/sizes" });
+    m.set("checkout", { label: "Checkout", href: "/checkout" });
     m.set("other", { label: "Other text", href: "/" });
     return m;
   }, []);
@@ -302,6 +303,10 @@ export function AdminConsole({ initialContent, textKeys }: AdminConsoleProps) {
     mutate((c) => ({ ...c, navVisible: { ...(c.navVisible ?? {}), [key]: visible } }));
   const setSizeGuide = (updater: (sg: SizeGuide) => SizeGuide) =>
     mutate((c) => ({ ...c, sizeGuide: updater(c.sizeGuide ?? { intro: "", rows: [] }) }));
+  const setCoupons = (updater: (list: Coupon[]) => Coupon[]) =>
+    mutate((c) => ({ ...c, coupons: updater(c.coupons ?? []) }));
+  const setShipping = (updater: (s: ShippingConfig) => ShippingConfig) =>
+    mutate((c) => ({ ...c, shipping: updater(c.shipping ?? { options: [] }) }));
   const addCollection = () =>
     mutate((c) => {
       c.collections.push({
@@ -645,6 +650,16 @@ export function AdminConsole({ initialContent, textKeys }: AdminConsoleProps) {
               {section === "sizeGuide" && (
                 <SizeGuideEditor guide={content.sizeGuide ?? { intro: "", rows: [] }} onChange={setSizeGuide} />
               )}
+
+              {/* CHECKOUT — coupons + shipping */}
+              {section === "checkout" && (
+                <CheckoutEditor
+                  coupons={content.coupons ?? []}
+                  shipping={content.shipping ?? { options: [] }}
+                  onCoupons={setCoupons}
+                  onShipping={setShipping}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -928,6 +943,141 @@ function SizeGuideEditor({
       >
         + Add size
       </button>
+    </div>
+  );
+}
+
+/* ============================ checkout ============================ */
+
+function CheckoutEditor({
+  coupons,
+  shipping,
+  onCoupons,
+  onShipping,
+}: {
+  coupons: Coupon[];
+  shipping: ShippingConfig;
+  onCoupons: (updater: (list: Coupon[]) => Coupon[]) => void;
+  onShipping: (updater: (s: ShippingConfig) => ShippingConfig) => void;
+}) {
+  const options = shipping.options ?? [];
+  return (
+    <div className="mx-auto flex max-w-2xl flex-col gap-7">
+      {/* coupons */}
+      <div className="flex flex-col gap-3">
+        <SectionHeading title="Coupon codes" desc="Discount codes customers can enter at checkout. Percent = % off; Amount = ₪ off." />
+        <div className="flex flex-col gap-2">
+          {coupons.map((cp, i) => (
+            <div key={i} className="grid grid-cols-[1fr_6rem_5rem_auto_2rem] items-center gap-2">
+              <input
+                value={cp.code}
+                placeholder="WELCOME10"
+                onChange={(e) => onCoupons((l) => l.map((x, k) => (k === i ? { ...x, code: e.target.value.toUpperCase() } : x)))}
+                className={inputCls}
+              />
+              <select
+                value={cp.kind}
+                onChange={(e) => onCoupons((l) => l.map((x, k) => (k === i ? { ...x, kind: e.target.value as Coupon["kind"] } : x)))}
+                className={`${inputCls} bg-neutral-900`}
+              >
+                <option value="percent">% off</option>
+                <option value="amount">₪ off</option>
+              </select>
+              <input
+                type="number"
+                value={cp.value || ""}
+                onChange={(e) => onCoupons((l) => l.map((x, k) => (k === i ? { ...x, value: Number(e.target.value) || 0 } : x)))}
+                className={inputCls}
+              />
+              <label className="flex items-center gap-1.5 text-[12px] text-neutral-300">
+                <input
+                  type="checkbox"
+                  checked={cp.active !== false}
+                  onChange={(e) => onCoupons((l) => l.map((x, k) => (k === i ? { ...x, active: e.target.checked } : x)))}
+                  className="h-4 w-4 accent-amber-400"
+                />
+                on
+              </label>
+              <button
+                onClick={() => onCoupons((l) => l.filter((_, k) => k !== i))}
+                title="Remove"
+                className="rounded-md border border-red-500/30 py-2 text-[12px] text-red-300 transition hover:bg-red-500/10"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          {coupons.length === 0 && <p className="text-[13px] text-neutral-500">No coupon codes yet.</p>}
+        </div>
+        <button
+          onClick={() => onCoupons((l) => [...l, { code: "", kind: "percent", value: 10, active: true }])}
+          className="self-start rounded-lg bg-amber-400 px-4 py-2 text-[13px] font-medium text-neutral-900 transition hover:bg-amber-300"
+        >
+          + Add coupon
+        </button>
+      </div>
+
+      {/* shipping */}
+      <div className="flex flex-col gap-3">
+        <SectionHeading title="Shipping" desc="Options shown at checkout, with their price in ₪." />
+        <Field label="Free shipping over (₪)" hint="0 or blank = no free-shipping threshold.">
+          <input
+            type="number"
+            value={shipping.freeOver ?? ""}
+            onChange={(e) => {
+              const n = Number(e.target.value) || 0;
+              onShipping((s) => ({ ...s, freeOver: n > 0 ? n : undefined }));
+            }}
+            className={inputCls}
+          />
+        </Field>
+        <div className="flex flex-col gap-2">
+          <div className="hidden grid-cols-[1fr_6rem_2rem] gap-2 px-1 text-[11px] uppercase tracking-wider text-neutral-500 sm:grid">
+            <span>Label</span>
+            <span>Price ₪</span>
+            <span />
+          </div>
+          {options.map((o, i) => (
+            <div key={i} className="grid grid-cols-[1fr_6rem_2rem] items-center gap-2">
+              <input
+                value={o.label}
+                placeholder="Home delivery"
+                onChange={(e) =>
+                  onShipping((s) => ({ ...s, options: s.options.map((x, k) => (k === i ? { ...x, label: e.target.value } : x)) }))
+                }
+                className={inputCls}
+              />
+              <input
+                type="number"
+                value={o.price || 0}
+                onChange={(e) =>
+                  onShipping((s) => ({ ...s, options: s.options.map((x, k) => (k === i ? { ...x, price: Number(e.target.value) || 0 } : x)) }))
+                }
+                className={inputCls}
+              />
+              <button
+                onClick={() => onShipping((s) => ({ ...s, options: s.options.filter((_, k) => k !== i) }))}
+                title="Remove"
+                className="rounded-md border border-red-500/30 py-2 text-[12px] text-red-300 transition hover:bg-red-500/10"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          {options.length === 0 && <p className="text-[13px] text-neutral-500">No shipping options yet.</p>}
+        </div>
+        <button
+          onClick={() =>
+            onShipping((s) => ({
+              ...s,
+              options: [...(s.options ?? []), { id: `ship-${(s.options?.length ?? 0) + 1}`, label: "", price: 0 } as ShippingOption],
+            }))
+          }
+          className="self-start rounded-lg bg-amber-400 px-4 py-2 text-[13px] font-medium text-neutral-900 transition hover:bg-amber-300"
+        >
+          + Add shipping option
+        </button>
+      </div>
     </div>
   );
 }

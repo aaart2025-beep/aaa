@@ -52,6 +52,7 @@ export const shop: Record<Lang, Record<string, string>> = {
 
     /* ---- product page ---- */
     "shop.backToShop": "Back to the shop",
+    "shop.related": "You might also like",
     "shop.fieldGarment": "Garment",
     "shop.fieldFit": "Fit",
     "shop.fieldFabricDetail": "Fabric Detail",
@@ -200,6 +201,7 @@ export const shop: Record<Lang, Record<string, string>> = {
 
     /* ---- product page ---- */
     "shop.backToShop": "חזרה לחנות",
+    "shop.related": "אולי יעניין אתכם גם",
     "shop.fieldGarment": "פריט",
     "shop.fieldFit": "גזרה",
     "shop.fieldFabricDetail": "פרט בד",

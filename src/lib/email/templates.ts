@@ -1,4 +1,4 @@
-import type { Order } from "@/lib/orders/types";
+import { orderTotal, type Order } from "@/lib/orders/types";
 
 /* Transactional email content. Pure functions — no I/O — so they are unit
  * testable and render identically in every environment. Plain-table HTML
@@ -67,6 +67,11 @@ function shell(bodyHtml: string): string {
 function itemsTable(order: Order, lang: "he" | "en"): string {
   const rtl = lang === "he";
   const totalLabel = rtl ? "סה״כ" : "Total";
+  const subLabel = rtl ? "סכום ביניים" : "Subtotal";
+  const discLabel = rtl ? "הנחה" : "Discount";
+  const shipLabel = rtl ? "משלוח" : "Shipping";
+  const freeLabel = rtl ? "חינם" : "Free";
+  const valAlign = rtl ? "left" : "right";
   const namePad = rtl ? "padding-right:10px" : "padding-left:10px";
   const rows = order.items
     .map((i) => {
@@ -81,11 +86,22 @@ function itemsTable(order: Order, lang: "he" | "en"): string {
 </tr>`;
     })
     .join("");
-  return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;width:100%;margin-top:6px" dir="${rtl ? "rtl" : "ltr"}">${rows}
-<tr>
-  <td colspan="2" style="padding:10px 0 0;border-top:1px solid ${BRAND.line};font-size:14px"><strong>${totalLabel}</strong></td>
-  <td style="padding:10px 0 0;border-top:1px solid ${BRAND.line};text-align:${rtl ? "left" : "right"};font-size:14px"><strong>${ils(order.subtotal)}</strong></td>
-</tr></table>`;
+  const foot = (label: string, val: string, opts?: { top?: boolean; bold?: boolean }) =>
+    `<tr>
+  <td colspan="2" style="padding:${opts?.top ? "10px 0 0" : "3px 0 0"};${opts?.top ? `border-top:1px solid ${BRAND.line};` : ""}font-size:14px">${opts?.bold ? `<strong>${label}</strong>` : label}</td>
+  <td style="padding:${opts?.top ? "10px 0 0" : "3px 0 0"};${opts?.top ? `border-top:1px solid ${BRAND.line};` : ""}text-align:${valAlign};font-size:14px;white-space:nowrap">${opts?.bold ? `<strong>${val}</strong>` : val}</td>
+</tr>`;
+
+  let footer = foot(subLabel, ils(order.subtotal), { top: true });
+  if (order.discount && order.discount > 0) {
+    footer += foot(`${discLabel}${order.couponCode ? ` (${esc(order.couponCode)})` : ""}`, `− ${ils(order.discount)}`);
+  }
+  if (typeof order.shippingCost === "number") {
+    footer += foot(shipLabel, order.shippingCost === 0 ? freeLabel : ils(order.shippingCost));
+  }
+  footer += foot(totalLabel, ils(orderTotal(order)), { bold: true });
+
+  return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;width:100%;margin-top:6px" dir="${rtl ? "rtl" : "ltr"}">${rows}${footer}</table>`;
 }
 
 function itemsText(order: Order): string {
@@ -121,8 +137,8 @@ export function orderReceiptEmail(order: Order): EmailContent {
     subject: `תודה על הזמנתך · Your AAA order ${order.id}`,
     html: shell(he + en),
     text:
-      `תודה על הזמנתך, ${order.customer.name}!\nהזמנה ${order.id}\n${itemsText(order)}\nסה״כ: ${ils(order.subtotal)}\nשאלות? אפשר להשיב למייל הזה.\n\n— — —\n\n` +
-      `Thanks for your order, ${order.customer.name}!\nOrder ${order.id}\n${itemsText(order)}\nTotal: ${ils(order.subtotal)}\nQuestions? Reply to this email.\nAAA — Wearable Art · artbyaaa.com`,
+      `תודה על הזמנתך, ${order.customer.name}!\nהזמנה ${order.id}\n${itemsText(order)}\nסה״כ: ${ils(orderTotal(order))}\nשאלות? אפשר להשיב למייל הזה.\n\n— — —\n\n` +
+      `Thanks for your order, ${order.customer.name}!\nOrder ${order.id}\n${itemsText(order)}\nTotal: ${ils(orderTotal(order))}\nQuestions? Reply to this email.\nAAA — Wearable Art · artbyaaa.com`,
   };
 }
 
@@ -138,9 +154,9 @@ export function orderAlertEmail(order: Order): EmailContent {
   <p style="margin:18px 0 0;font-size:14px"><a href="${BRAND.site}/admin/orders" style="color:${BRAND.ink}"><strong>Open admin orders →</strong></a></p>
 </div>`;
   return {
-    subject: `New order ${order.id} — ${ils(order.subtotal)}`,
+    subject: `New order ${order.id} — ${ils(orderTotal(order))}`,
     html: shell(body),
-    text: `New order ${order.id}\n${c.name} · ${c.email}${c.phone ? ` · ${c.phone}` : ""}\n${c.address ? `Ship to: ${c.address}\n` : ""}${itemsText(order)}\nTotal: ${ils(order.subtotal)}\nAdmin: ${BRAND.site}/admin/orders`,
+    text: `New order ${order.id}\n${c.name} · ${c.email}${c.phone ? ` · ${c.phone}` : ""}\n${c.address ? `Ship to: ${c.address}\n` : ""}${itemsText(order)}\nTotal: ${ils(orderTotal(order))}\nAdmin: ${BRAND.site}/admin/orders`,
   };
 }
 

@@ -41,12 +41,27 @@ export interface Order {
   createdAt: string; // ISO
   items: OrderItem[];
   subtotal: number;
+  /** Applied coupon code (if any). */
+  couponCode?: string;
+  /** Discount amount in ₪ from the coupon. */
+  discount?: number;
+  /** Chosen shipping method label + cost. */
+  shippingLabel?: string;
+  shippingCost?: number;
+  /** Grand total charged: subtotal − discount + shipping. */
+  total?: number;
   currency: "ILS";
   customer: OrderCustomer;
   paymentStatus: PaymentStatus;
-  /** how the studio collected payment, e.g. "Bank transfer", "Cash", "Bit" */
+  /** how the studio collected payment, e.g. "Bank transfer", "Cash", "Bit", "HYP" */
   paymentMethod?: string;
   fulfillmentStatus: FulfillmentStatus;
+}
+
+/** Grand total for an order, computed if not stored (older orders). */
+export function orderTotal(o: Pick<Order, "subtotal" | "discount" | "shippingCost" | "total">): number {
+  if (typeof o.total === "number") return o.total;
+  return Math.max(0, o.subtotal - (o.discount ?? 0)) + (o.shippingCost ?? 0);
 }
 
 /** Short human-friendly order reference, e.g. "AAA-7F3K2". */

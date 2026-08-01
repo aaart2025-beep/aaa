@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { items?: unknown; customer?: unknown; company?: unknown };
+  let body: { items?: unknown; customer?: unknown; company?: unknown; couponCode?: unknown; shippingId?: unknown };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -67,7 +67,8 @@ export async function POST(req: Request) {
 
   // Recompute names + prices server-side from the live catalog (never trust the
   // client's price), and drop any line whose slug we don't recognise.
-  const { products } = await readContent();
+  const content = await readContent();
+  const { products } = content;
   const items: OrderItem[] = [];
   for (const it of rawItems) {
     const slug = str(it.slug);
@@ -90,11 +91,34 @@ export async function POST(req: Request) {
     note: str(c.note) || undefined,
   };
 
+  // Coupon (re-validated server-side; never trust the client's discount).
+  const couponInput = str(body.couponCode).toUpperCase();
+  const coupon = couponInput
+    ? (content.coupons ?? []).find((cp) => cp.code.trim().toUpperCase() === couponInput && cp.active !== false)
+    : undefined;
+  let discount = 0;
+  if (coupon) {
+    discount = coupon.kind === "percent" ? Math.round((subtotal * coupon.value) / 100) : Math.round(coupon.value);
+    discount = Math.max(0, Math.min(discount, subtotal));
+  }
+
+  // Shipping (validated against the configured options; free over the threshold).
+  const shipCfg = content.shipping;
+  const shipOpt = shipCfg?.options.find((o) => o.id === str(body.shippingId));
+  const freeShip = Boolean(shipCfg?.freeOver && subtotal - discount >= shipCfg.freeOver);
+  const shippingCost = shipOpt ? (freeShip ? 0 : Math.max(0, Math.round(shipOpt.price))) : undefined;
+  const total = Math.max(0, subtotal - discount) + (shippingCost ?? 0);
+
   const order: Order = {
     id: newOrderId(Date.now() + Math.floor(Math.random() * 1_000_000)),
     createdAt: new Date().toISOString(),
     items,
     subtotal,
+    couponCode: coupon?.code,
+    discount: discount > 0 ? discount : undefined,
+    shippingLabel: shipOpt?.label,
+    shippingCost,
+    total,
     currency: "ILS",
     customer,
     paymentStatus: "unpaid",

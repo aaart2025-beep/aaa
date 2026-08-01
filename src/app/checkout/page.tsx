@@ -19,7 +19,7 @@ export default async function CheckoutPage() {
     <PaperShell>
       <PaperHeader />
       <div className="mx-auto w-full max-w-[680px] flex-1 px-4 py-10 sm:px-6 sm:py-12">
-        <CheckoutClient email={email} apiBase={apiBase} />
+        <CheckoutClient email={email} apiBase={apiBase} coupons={content.coupons ?? []} shipping={content.shipping} />
         <div className="mt-12 flex justify-center">
           <SketchDoodle complexity="simple" caption className="w-20 sm:w-24" />
         </div>

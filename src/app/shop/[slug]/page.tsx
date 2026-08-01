@@ -10,6 +10,7 @@ import { PaperShell } from "@/components/paper/paper-shell";
 import { PaperHeader } from "@/components/paper/paper-header";
 import { PaintPrice } from "@/components/paper/paint-price";
 import { SpecImage } from "@/components/paper/spec-image";
+import { SpecCard } from "@/components/paper/spec-card";
 import { BuyPanel } from "@/components/cart/buy-panel";
 import { AaaLogo } from "@/components/book/aaa-logo";
 import { PolicyDialog } from "@/components/policy/policy-dialog";
@@ -94,6 +95,15 @@ function shortDetail(print: string): string {
   return print.split(" ")[0];
 }
 
+/** Up to n other pieces to suggest under a product — same category first, then
+ * the rest of the catalog. Hidden pieces and the current one are skipped. */
+function pickRelated<T extends { slug: string; category: string; hidden?: boolean }>(all: T[], current: T, n: number): T[] {
+  const pool = all.filter((p) => !p.hidden && p.slug !== current.slug);
+  const same = pool.filter((p) => p.category === current.category);
+  const rest = pool.filter((p) => p.category !== current.category);
+  return [...same, ...rest].slice(0, n);
+}
+
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <p className="font-archivo text-[clamp(12px,1.4vw,15px)] leading-tight text-ink">
@@ -113,6 +123,8 @@ export default async function ProductPage({ params }: PageProps) {
   const text = (key: string, fallback: string) => content.texts[key] ?? fallback;
   // Localised copy (tagline / details / colours); NAME always stays English.
   const product = localizeProduct(raw, lang);
+  // "You might also like" — other pieces, same category first.
+  const relatedLoc = pickRelated(content.products, raw, 4).map((p) => localizeProduct(p, lang));
 
   // specOf() matches English words, so derive the spec from the English source
   // and translate each value. Fabric/Print resolve to detail strings, which we
@@ -297,6 +309,19 @@ export default async function ProductPage({ params }: PageProps) {
           </div>
         </article>
       </div>
+
+      {relatedLoc.length > 0 && (
+        <section className="mx-auto w-full max-w-[680px] px-4 pb-14 sm:px-6">
+          <h2 className="font-archivo mb-5 border-t border-ink/40 pt-5 text-[13px] font-bold uppercase tracking-[0.18em] text-ink/80">
+            {t("shop.related")}
+          </h2>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-4 sm:gap-x-4">
+            {relatedLoc.map((p) => (
+              <SpecCard key={p.slug} product={p} tone="#faf7f1" />
+            ))}
+          </div>
+        </section>
+      )}
      </div>
     </PaperShell>
   );

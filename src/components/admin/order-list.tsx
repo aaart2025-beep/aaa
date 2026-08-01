@@ -9,6 +9,7 @@ import {
   PAYMENT_STATUSES,
   FULFILLMENT_STATUSES,
   FULFILLMENT_LABELS,
+  orderTotal,
 } from "@/lib/orders/types";
 
 const PAYMENT_LABEL: Record<PaymentStatus, string> = { unpaid: "Unpaid", paid: "Paid", refunded: "Refunded" };
@@ -88,9 +89,33 @@ export function OrderList({ initial }: { initial: Order[] }) {
                   </li>
                 ))}
               </ul>
-              <div className="mt-3 flex items-baseline justify-between border-t border-dashed border-ink/25 pt-2">
-                <span className="font-typewriter text-[9px] uppercase tracking-[0.2em] text-ink/70">Subtotal</span>
-                <span className="font-archivo text-[15px] font-extrabold text-ink">{formatPrice(o.subtotal)}</span>
+              <div className="mt-3 flex flex-col gap-1 border-t border-dashed border-ink/25 pt-2">
+                <div className="flex items-baseline justify-between">
+                  <span className="font-typewriter text-[9px] uppercase tracking-[0.2em] text-ink/70">Subtotal</span>
+                  <span className="font-typewriter text-[12px] text-ink">{formatPrice(o.subtotal)}</span>
+                </div>
+                {o.discount ? (
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-typewriter text-[9px] uppercase tracking-[0.2em] text-ink/70">
+                      Discount{o.couponCode ? ` (${o.couponCode})` : ""}
+                    </span>
+                    <span className="font-typewriter text-[12px] text-lime-700">− {formatPrice(o.discount)}</span>
+                  </div>
+                ) : null}
+                {typeof o.shippingCost === "number" ? (
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-typewriter text-[9px] uppercase tracking-[0.2em] text-ink/70">
+                      Shipping{o.shippingLabel ? ` · ${o.shippingLabel}` : ""}
+                    </span>
+                    <span className="font-typewriter text-[12px] text-ink">
+                      {o.shippingCost === 0 ? "Free" : formatPrice(o.shippingCost)}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex items-baseline justify-between border-t border-ink/20 pt-1">
+                  <span className="font-typewriter text-[9px] uppercase tracking-[0.2em] text-ink">Total</span>
+                  <span className="font-archivo text-[15px] font-extrabold text-ink">{formatPrice(orderTotal(o))}</span>
+                </div>
               </div>
             </div>
 

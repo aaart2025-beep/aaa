@@ -22,6 +22,9 @@ function normalize(stored: Partial<SiteContent> | null): SiteContent {
       stored.sizeGuide && Array.isArray(stored.sizeGuide.rows)
         ? { intro: stored.sizeGuide.intro, rows: stored.sizeGuide.rows }
         : base.sizeGuide,
+    coupons: Array.isArray(stored.coupons) ? stored.coupons : base.coupons,
+    shipping:
+      stored.shipping && Array.isArray(stored.shipping.options) ? stored.shipping : base.shipping,
     updatedAt: typeof stored.updatedAt === "string" ? stored.updatedAt : undefined,
   };
 }

@@ -2,12 +2,14 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { ShieldCheck, RotateCcw, Sparkles, MessageCircle } from "lucide-react";
 import { useCart, cartSubtotal } from "@/lib/cart/store";
 import { formatPrice } from "@/lib/products";
 import { TransitionLink } from "@/components/transition/page-transition";
 import { PolicyDialog } from "@/components/policy/policy-dialog";
 import { ReturnsPolicyContent, CarePolicyContent } from "@/lib/policies";
 import { useT } from "@/lib/i18n/context";
+import type { Coupon, ShippingConfig } from "@/lib/content/types";
 
 /* The checkout page: review the bag, fill in contact + shipping details, agree
  * to the policy, then place the order. Payment is arranged offline for now (no
@@ -46,7 +48,26 @@ function LineField({
   );
 }
 
-export function CheckoutClient({ email, apiBase = "" }: { email: string; apiBase?: string }) {
+function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="flex items-baseline justify-between">
+      <span className="font-typewriter text-[10px] uppercase tracking-[0.16em] text-ink/70">{label}</span>
+      <span className={`font-typewriter text-[13px] ${accent ? "font-bold text-lime-700" : "text-ink"}`}>{value}</span>
+    </div>
+  );
+}
+
+export function CheckoutClient({
+  email,
+  apiBase = "",
+  coupons = [],
+  shipping,
+}: {
+  email: string;
+  apiBase?: string;
+  coupons?: Coupon[];
+  shipping?: ShippingConfig;
+}) {
   const items = useCart((s) => s.items);
   const router = useRouter();
   const t = useT();
@@ -62,7 +83,37 @@ export function CheckoutClient({ email, apiBase = "" }: { email: string; apiBase
   const [company, setCompany] = React.useState("");
   React.useEffect(() => setMounted(true), []);
 
+  // coupon + shipping
+  const [couponInput, setCouponInput] = React.useState("");
+  const [applied, setApplied] = React.useState<Coupon | null>(null);
+  const [couponErr, setCouponErr] = React.useState(false);
+  const options = shipping?.options ?? [];
+  const [shippingId, setShippingId] = React.useState(options[0]?.id ?? "");
+
   const subtotal = mounted ? cartSubtotal(items) : 0;
+  const rawDiscount = applied
+    ? applied.kind === "percent"
+      ? Math.round((subtotal * applied.value) / 100)
+      : Math.round(applied.value)
+    : 0;
+  const discount = Math.max(0, Math.min(rawDiscount, subtotal));
+  const freeShip = Boolean(shipping?.freeOver && subtotal - discount >= shipping.freeOver);
+  const selectedOpt = options.find((o) => o.id === shippingId);
+  const shippingCost = selectedOpt ? (freeShip ? 0 : selectedOpt.price) : 0;
+  const total = Math.max(0, subtotal - discount) + shippingCost;
+
+  const applyCoupon = () => {
+    const code = couponInput.trim().toUpperCase();
+    const found = coupons.find((cp) => cp.code.trim().toUpperCase() === code && cp.active !== false);
+    if (found) {
+      setApplied(found);
+      setCouponErr(false);
+    } else {
+      setApplied(null);
+      setCouponErr(true);
+    }
+  };
+
   const isEmail = (s: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s);
   const set =
     (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -86,6 +137,8 @@ export function CheckoutClient({ email, apiBase = "" }: { email: string; apiBase
         body: JSON.stringify({
           items: items.map((i) => ({ slug: i.slug, variant: i.variant, qty: i.qty })),
           company,
+          couponCode: applied?.code,
+          shippingId: selectedOpt?.id,
           customer: {
             name: form.name.trim(),
             email: form.email.trim(),
@@ -97,7 +150,22 @@ export function CheckoutClient({ email, apiBase = "" }: { email: string; apiBase
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; id?: string; error?: string };
       if (res.ok && data.ok && data.id) {
-        // success page clears the bag on mount
+        // If HYP online payment is configured, hand off to its hosted page;
+        // otherwise go to the confirmation page (studio arranges payment).
+        try {
+          const payRes = await fetch(`${apiBase}/api/pay/hyp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId: data.id }),
+          });
+          const pay = (await payRes.json().catch(() => ({}))) as { ok?: boolean; url?: string };
+          if (pay.ok && pay.url) {
+            window.location.href = pay.url;
+            return;
+          }
+        } catch {
+          /* payment init unreachable → fall through to the confirmation page */
+        }
         router.push(`/checkout/success?ref=${encodeURIComponent(data.id)}`);
         return;
       }
@@ -129,6 +197,9 @@ export function CheckoutClient({ email, apiBase = "" }: { email: string; apiBase
       lines,
       "",
       `Subtotal: ${formatPrice(subtotal)}`,
+      applied ? `Discount (${applied.code}): -${formatPrice(discount)}` : "",
+      selectedOpt ? `Shipping (${selectedOpt.label}): ${shippingCost === 0 ? "Free" : formatPrice(shippingCost)}` : "",
+      `Total: ${formatPrice(total)}`,
       "",
       "My details:",
       `  Name: ${form.name || "—"}`,
@@ -185,13 +256,8 @@ export function CheckoutClient({ email, apiBase = "" }: { email: string; apiBase
         ))}
       </ul>
 
-      <div className="flex items-baseline justify-between border-t border-ink/60 pt-3">
-        <span className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-ink/70">{t("checkout.subtotal")}</span>
-        <span className="font-archivo text-[22px] font-extrabold text-ink">{formatPrice(subtotal)}</span>
-      </div>
-      <p className="font-typewriter -mt-4 text-right text-[9.5px] uppercase tracking-[0.14em] text-ink/70">
-        {t("checkout.studioConfirms")}
-      </p>
+      {/* order summary (subtotal → coupon → shipping → total) lives below,
+          after the contact details */}
 
       {/* contact + shipping */}
       <div className="flex flex-col gap-3.5 border-t border-ink/60 pt-4">
@@ -214,6 +280,94 @@ export function CheckoutClient({ email, apiBase = "" }: { email: string; apiBase
               onChange={(e) => setCompany(e.target.value)}
             />
           </label>
+        </div>
+      </div>
+
+      {/* shipping method */}
+      {options.length > 0 && (
+        <div className="flex flex-col gap-2 border-t border-ink/60 pt-4">
+          <p className="font-typewriter text-[9px] uppercase tracking-[0.2em] text-ink/70">{t("checkout.shippingHeading")}</p>
+          <div className="flex flex-col gap-2">
+            {options.map((o) => {
+              const cost = freeShip ? 0 : o.price;
+              const active = shippingId === o.id;
+              return (
+                <label
+                  key={o.id}
+                  className={`flex cursor-pointer items-center justify-between gap-3 border px-3 py-2.5 transition-colors ${
+                    active ? "border-ink bg-paper-dark/15" : "border-ink/25 hover:border-ink/50"
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <input type="radio" name="shipping" checked={active} onChange={() => setShippingId(o.id)} className="h-4 w-4 accent-ink" />
+                    <span className="font-typewriter text-[12px] text-ink">{o.label}</span>
+                  </span>
+                  <span className="font-typewriter text-[12px] font-bold text-ink">
+                    {cost === 0 ? t("checkout.free") : formatPrice(cost)}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          {shipping?.freeOver ? (
+            <p className="font-typewriter text-[9px] uppercase tracking-[0.14em] text-ink/60">
+              {t("checkout.freeOverNote", { amount: formatPrice(shipping.freeOver) })}
+            </p>
+          ) : null}
+        </div>
+      )}
+
+      {/* coupon code */}
+      <div className="flex flex-col gap-2 border-t border-ink/60 pt-4">
+        <p className="font-typewriter text-[9px] uppercase tracking-[0.2em] text-ink/70">{t("checkout.couponLabel")}</p>
+        {applied ? (
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-typewriter text-[12px] text-ink">✓ {applied.code} — {t("checkout.couponApplied")}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setApplied(null);
+                setCouponInput("");
+                setCouponErr(false);
+              }}
+              className="font-typewriter text-[10px] uppercase tracking-[0.12em] text-ink/60 underline underline-offset-2 hover:text-ink"
+            >
+              {t("checkout.couponRemove")}
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              value={couponInput}
+              onChange={(e) => {
+                setCouponInput(e.target.value);
+                setCouponErr(false);
+              }}
+              placeholder={t("checkout.couponPlaceholder")}
+              className={`${inputCls} flex-1`}
+            />
+            <button type="button" onClick={applyCoupon} className="chip-ink font-archivo shrink-0 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.14em]">
+              {t("checkout.couponApply")}
+            </button>
+          </div>
+        )}
+        {couponErr && (
+          <p className="font-typewriter text-[9px] uppercase tracking-[0.14em] text-red-600">{t("checkout.couponInvalid")}</p>
+        )}
+      </div>
+
+      {/* totals */}
+      <div className="flex flex-col gap-1.5 border-t border-ink/60 pt-4">
+        <Row label={t("checkout.subtotal")} value={formatPrice(subtotal)} />
+        {discount > 0 && (
+          <Row label={`${t("checkout.discount")}${applied ? ` (${applied.code})` : ""}`} value={`− ${formatPrice(discount)}`} accent />
+        )}
+        {selectedOpt && (
+          <Row label={t("checkout.shippingHeading")} value={shippingCost === 0 ? t("checkout.free") : formatPrice(shippingCost)} />
+        )}
+        <div className="mt-1 flex items-baseline justify-between border-t border-ink/30 pt-2">
+          <span className="font-typewriter text-[11px] uppercase tracking-[0.18em] text-ink">{t("checkout.total")}</span>
+          <span className="font-archivo text-[24px] font-extrabold text-ink">{formatPrice(total)}</span>
         </div>
       </div>
 
@@ -278,7 +432,7 @@ export function CheckoutClient({ email, apiBase = "" }: { email: string; apiBase
               !agreed ? "opacity-60" : ""
             }`}
           >
-            {loading ? t("checkout.placing") : t("checkout.placeOrder")}
+            {loading ? t("checkout.placing") : t("checkout.toPayment")}
           </button>
           <p className="font-typewriter text-center text-[9.5px] uppercase tracking-[0.14em] text-ink/70">
             {t("checkout.noCard")}
@@ -301,6 +455,21 @@ export function CheckoutClient({ email, apiBase = "" }: { email: string; apiBase
           </button>
         </div>
       )}
+
+      {/* trust signals — reassurance right by the order button */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-ink/20 pt-5 sm:grid-cols-4">
+        {[
+          { icon: <ShieldCheck className="h-4 w-4" strokeWidth={1.6} />, label: t("checkout.trustSecure") },
+          { icon: <Sparkles className="h-4 w-4" strokeWidth={1.6} />, label: t("checkout.trustHandmade") },
+          { icon: <RotateCcw className="h-4 w-4" strokeWidth={1.6} />, label: t("checkout.trustReturns") },
+          { icon: <MessageCircle className="h-4 w-4" strokeWidth={1.6} />, label: t("checkout.trustSupport") },
+        ].map((it, i) => (
+          <div key={i} className="flex items-center gap-2 text-ink/70">
+            <span className="shrink-0 text-ink/55">{it.icon}</span>
+            <span className="font-typewriter text-[9.5px] uppercase leading-tight tracking-[0.1em]">{it.label}</span>
+          </div>
+        ))}
+      </div>
 
       <TransitionLink
         href="/shop"
