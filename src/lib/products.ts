@@ -53,6 +53,9 @@ export interface Product {
   soldOut?: boolean;
   /** A single, one-of-one piece — shown with a "one piece only" mark. */
   onePiece?: boolean;
+  /** Sizes that are out of stock: still shown on the product, but struck-through
+   * and not selectable. Lets the studio drop individual sizes without deleting them. */
+  soldOutSizes?: string[];
 }
 
 /** The display zoom for one image of a product (1 = natural size). */

@@ -15,6 +15,7 @@ export function BuyPanel({
   price,
   image,
   sizes,
+  unavailableSizes,
   soldOut = false,
   priceSlot,
   careSlot,
@@ -25,6 +26,8 @@ export function BuyPanel({
   image?: string;
   /** Buyable sizes; 0–1 entries → no picker shown. */
   sizes: string[];
+  /** Sizes shown but out of stock: struck-through and not selectable. */
+  unavailableSizes?: string[];
   /** Out of stock — the buy button is replaced by a "sold out" state. */
   soldOut?: boolean;
   priceSlot: React.ReactNode;
@@ -32,12 +35,16 @@ export function BuyPanel({
 }) {
   const add = useCart((s) => s.add);
   const t = useT();
-  const needSize = sizes.length > 1;
-  const [size, setSize] = React.useState<string | null>(needSize ? null : (sizes[0] ?? null));
+  const gone = React.useMemo(() => new Set(unavailableSizes ?? []), [unavailableSizes]);
+  const available = sizes.filter((s) => !gone.has(s));
+  const needSize = available.length > 1;
+  const allGone = sizes.length > 0 && available.length === 0;
+  const disabled = soldOut || allGone;
+  const [size, setSize] = React.useState<string | null>(needSize ? null : (available[0] ?? null));
   const [hint, setHint] = React.useState(false);
 
   const onAdd = () => {
-    if (soldOut) return;
+    if (disabled) return;
     if (needSize && !size) {
       setHint(true);
       return;
@@ -47,7 +54,7 @@ export function BuyPanel({
 
   return (
     <div className="w-full">
-      {needSize && (
+      {sizes.length > 1 && (
         <div className="mb-3.5 border-t border-dashed border-ink/30 pt-3">
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="font-archivo text-[11px] font-bold uppercase tracking-[0.16em] text-ink">{t("chrome.size")}</span>
@@ -60,20 +67,27 @@ export function BuyPanel({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {sizes.map((s) => {
+              const off = gone.has(s);
               const active = size === s;
               return (
                 <button
                   key={s}
                   type="button"
                   aria-pressed={active}
+                  disabled={off}
+                  aria-disabled={off}
+                  title={off ? t("shop.soldOut") : undefined}
                   onClick={() => {
+                    if (off) return;
                     setSize(s);
                     setHint(false);
                   }}
                   className={`font-typewriter min-w-[2.9rem] px-3 py-2.5 text-[12px] uppercase tracking-[0.08em] transition-colors sm:min-w-[2.6rem] sm:py-2 sm:text-[11px] ${
-                    active
-                      ? "bg-ink text-paper"
-                      : "border border-ink/40 text-ink/75 hover:border-ink hover:text-ink"
+                    off
+                      ? "cursor-not-allowed border border-ink/20 text-ink/35 line-through"
+                      : active
+                        ? "bg-ink text-paper"
+                        : "border border-ink/40 text-ink/75 hover:border-ink hover:text-ink"
                   }`}
                 >
                   {s}
@@ -91,7 +105,7 @@ export function BuyPanel({
         {priceSlot}
         <div className="flex items-center gap-2.5">
           {careSlot}
-          {soldOut ? (
+          {disabled ? (
             <span
               className="font-archivo cursor-not-allowed border-2 border-red-600/70 px-7 py-3 text-[12px] font-bold uppercase tracking-[0.18em] text-red-600"
               aria-disabled="true"

@@ -10,7 +10,6 @@ import { PaperShell } from "@/components/paper/paper-shell";
 import { PaperHeader } from "@/components/paper/paper-header";
 import { PaintPrice } from "@/components/paper/paint-price";
 import { SpecImage } from "@/components/paper/spec-image";
-import { GlowText } from "@/components/paper/glow-text";
 import { BuyPanel } from "@/components/cart/buy-panel";
 import { AaaLogo } from "@/components/book/aaa-logo";
 import { PolicyDialog } from "@/components/policy/policy-dialog";
@@ -248,8 +247,10 @@ export default async function ProductPage({ params }: PageProps) {
               </p>
             ) : null}
             {product.onePiece && !product.soldOut ? (
-              <p className="mb-2 font-typewriter text-[12px] font-semibold uppercase tracking-[0.16em]">
-                <GlowText text={`✶ ${t("shop.onePiece")}`} className="one-piece-glow" />
+              <p className="mb-2">
+                <span className="one-piece-badge font-archivo text-[12px] uppercase tracking-[0.14em]">
+                  {t("shop.onePiece")}
+                </span>
               </p>
             ) : null}
             {product.soldOut ? (
@@ -265,6 +266,7 @@ export default async function ProductPage({ params }: PageProps) {
               price={salePrice}
               image={product.images[0]}
               sizes={buyableSizes}
+              unavailableSizes={product.soldOutSizes}
               soldOut={product.soldOut}
               priceSlot={
                 <PaintPrice

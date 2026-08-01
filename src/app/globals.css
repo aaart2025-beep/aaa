@@ -1251,34 +1251,17 @@ html.a11y-reduce-motion *::after {
 }
 
 /* ------------------------------------------------------------------ */
-/* "One piece only" mark — delicate gold with a soft fluorescent pulse */
-/* (brightens then dims) so the eye catches its quiet movement.        */
+/* "One piece only" mark — a black rectangular sticker with red text,   */
+/* set on a slight diagonal so it reads like a stamped label.           */
 /* ------------------------------------------------------------------ */
-.one-piece-glow {
-  color: #b0872f; /* delicate antique gold */
-}
-/* Each letter lights up in turn — a wave of light sweeping across the word.
-   The stagger comes from a per-letter animation-delay set inline (GlowText). */
-.one-piece-letter {
+.one-piece-badge {
   display: inline-block;
-  animation: aaa-one-piece-wave 2.4s ease-in-out infinite both;
-  will-change: opacity, text-shadow;
-}
-@keyframes aaa-one-piece-wave {
-  0%,
-  45%,
-  100% {
-    opacity: 0.5;
-    text-shadow: none;
-  }
-  16% {
-    opacity: 1;
-    text-shadow: 0 0 5px rgba(212, 175, 90, 0.9), 0 0 13px rgba(212, 175, 90, 0.55);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .one-piece-letter {
-    animation: none;
-    opacity: 1;
-  }
+  background: #17140f; /* near-black */
+  color: #e23b2e; /* red */
+  transform: rotate(-4deg);
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-weight: 700;
+  line-height: 1.15;
+  box-shadow: 1.5px 1.5px 0 rgba(23, 20, 15, 0.28);
 }

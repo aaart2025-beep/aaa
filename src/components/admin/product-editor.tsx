@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import type { ContentProduct } from "@/lib/content/types";
-import { priceInfo, type ProductCategory, type ProductViews, type ViewKey } from "@/lib/products";
+import { priceInfo, defaultSizes, type ProductCategory, type ProductViews, type ViewKey } from "@/lib/products";
 import { Field, ImageManager, inputCls, formatUSD, isHex, slugify, uploadImage } from "./admin-ui";
 
 const CATEGORIES: ProductCategory[] = ["Headwear", "Footwear", "Clothing", "Art Object"];
@@ -183,14 +183,17 @@ export function ProductEditor({
       </Field>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Sizes (one per line)" hint="Leave blank for the standard set for this type.">
-          <textarea
-            value={(product.sizes ?? []).join("\n")}
-            onChange={(e) => onChange({ sizes: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
-            rows={3}
-            placeholder={"XS\nS\nM\nL\nXL"}
-            className={inputCls}
-          />
+        <Field label="Sizes (one per line)" hint="Leave blank for the standard set for this type. Set just one line for a single size.">
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={(product.sizes ?? []).join("\n")}
+              onChange={(e) => onChange({ sizes: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+              rows={3}
+              placeholder={"XS\nS\nM\nL\nXL"}
+              className={inputCls}
+            />
+            <SizeStock product={product} onChange={onChange} />
+          </div>
         </Field>
         <Field label="Colours (hex or name, one per line)">
           <div className="flex flex-col gap-2">
@@ -265,6 +268,52 @@ function DiscountField({
         )}
       </div>
     </Field>
+  );
+}
+
+/* ---------------- per-size stock (drop individual sizes) ---------------- */
+
+function SizeStock({
+  product,
+  onChange,
+}: {
+  product: ContentProduct;
+  onChange: (patch: Partial<ContentProduct>) => void;
+}) {
+  const sizes = product.sizes?.length ? product.sizes : defaultSizes(product.category);
+  const real = sizes.filter((s) => !/^one\b/i.test(s));
+  if (real.length === 0) return null;
+  const off = new Set(product.soldOutSizes ?? []);
+  const toggle = (s: string) => {
+    const next = new Set(off);
+    if (next.has(s)) next.delete(s);
+    else next.add(s);
+    onChange({ soldOutSizes: next.size ? [...next] : undefined });
+  };
+  return (
+    <div>
+      <span className="text-[11px] text-neutral-500">
+        Tap a size to mark it sold out — it stays visible on the product but crossed-out and not selectable.
+      </span>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {real.map((s) => {
+          const gone = off.has(s);
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => toggle(s)}
+              title={gone ? "Sold out — tap to restore" : "In stock — tap to mark sold out"}
+              className={`rounded-md border px-2.5 py-1 text-[12px] transition ${
+                gone ? "border-red-500/40 text-red-300 line-through" : "border-white/15 text-neutral-300 hover:border-white/40"
+              }`}
+            >
+              {s}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
