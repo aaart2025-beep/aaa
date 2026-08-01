@@ -284,7 +284,7 @@ export const policies: Record<Lang, Record<string, string>> = {
       "If you run into a barrier or have a suggestion, contact us using the email or WhatsApp in the footer and tell us the page and the problem. We aim to respond within 5 business days and to fix issues as quickly as we can.",
     "policies.accessibility.coordinator.h": "Accessibility Coordinator",
     "policies.accessibility.coordinator.p":
-      "Accessibility coordinator: Amit Amar. To make a request, ask a question, or report an accessibility barrier, contact the coordinator by email at aaart2025@gmail.com or through the WhatsApp link in the footer, noting the page and the difficulty. We will do our best to respond and to resolve the issue as quickly as we can.",
+      "Accessibility coordinator: Amit Amar. Phone / WhatsApp: 050-336-3443. Email: aaart2025@gmail.com. To make a request, ask a question, or report an accessibility barrier, contact the coordinator by phone, WhatsApp, or email, noting the page and the difficulty. We will do our best to respond and to resolve the issue as quickly as we can.",
     "policies.accessibility.reviewed": "Last reviewed: 1 August 2026.",
   },
 
@@ -563,7 +563,7 @@ export const policies: Record<Lang, Record<string, string>> = {
       "אם נתקלתם בחסם או שיש לכם הצעה, פנו אלינו בדוא״ל או בוואטסאפ המופיעים בתחתית האתר וציינו את העמוד ואת הבעיה. אנו שואפים להשיב בתוך 5 ימי עסקים ולתקן תקלות במהירות האפשרית.",
     "policies.accessibility.coordinator.h": "רכז נגישות",
     "policies.accessibility.coordinator.p":
-      "רכז הנגישות: עמית עמר. לכל פנייה, שאלה או דיווח על חסם נגישות, ניתן ליצור קשר עם רכז הנגישות בדוא״ל aaart2025@gmail.com או באמצעות קישור הוואטסאפ שבתחתית האתר, תוך ציון העמוד והקושי. נעשה כמיטב יכולתנו להשיב ולטפל בפנייה בהקדם האפשרי.",
+      "רכז הנגישות: עמית עמר. טלפון / וואטסאפ: 050-336-3443. דוא״ל: aaart2025@gmail.com. לכל פנייה, שאלה או דיווח על חסם נגישות, ניתן ליצור קשר עם רכז הנגישות בטלפון, בוואטסאפ או בדוא״ל, תוך ציון העמוד והקושי. נעשה כמיטב יכולתנו להשיב ולטפל בפנייה בהקדם האפשרי.",
     "policies.accessibility.reviewed": "נבדק לאחרונה: 1 באוגוסט 2026.",
   },
 };
