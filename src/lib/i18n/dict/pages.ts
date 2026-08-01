@@ -7,6 +7,20 @@ import type { Lang } from "@/lib/i18n/config";
 
 export const pages: Record<Lang, Record<string, string>> = {
   en: {
+    // ---- reviews ----
+    "reviews.eyebrow": "AAA — Customer Reviews",
+    "reviews.title": "Reviews",
+    "reviews.intro": "What people say — and what they made theirs into.",
+    "reviews.empty": "No reviews yet — be the first.",
+    "reviews.formHeading": "Leave a review",
+    "reviews.name": "Name",
+    "reviews.rating": "Rating",
+    "reviews.reviewText": "Your review",
+    "reviews.photo": "Add a photo (optional)",
+    "reviews.submit": "Post review",
+    "reviews.sending": "Sending…",
+    "reviews.sent": "Thanks! Your review appears once the studio approves it.",
+    "reviews.error": "Couldn't send — please try again.",
     // ---- about ----
     "pages.about.eyebrow": "The artist",
     "pages.about.title": "One pair of hands,",
@@ -177,6 +191,20 @@ export const pages: Record<Lang, Record<string, string>> = {
     "pages.aiPreview.note": "a peek at the real thing",
   },
   he: {
+    // ---- reviews ----
+    "reviews.eyebrow": "AAA — ביקורות לקוחות",
+    "reviews.title": "ביקורות",
+    "reviews.intro": "מה אומרים עלינו — ומה יצא לאנשים.",
+    "reviews.empty": "עדיין אין ביקורות — היו הראשונים.",
+    "reviews.formHeading": "השאירו ביקורת",
+    "reviews.name": "שם",
+    "reviews.rating": "דירוג",
+    "reviews.reviewText": "הביקורת שלך",
+    "reviews.photo": "הוספת תמונה (לא חובה)",
+    "reviews.submit": "שליחת ביקורת",
+    "reviews.sending": "שולח…",
+    "reviews.sent": "תודה! הביקורת תופיע לאחר אישור של הסטודיו.",
+    "reviews.error": "לא הצלחנו לשלוח — נסו שוב.",
     // ---- about ----
     "pages.about.eyebrow": "האמן",
     "pages.about.title": "זוג ידיים אחד,",

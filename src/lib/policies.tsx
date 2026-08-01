@@ -287,6 +287,7 @@ export function AccessibilityStatementContent() {
     },
     { h: t("policies.accessibility.limitations.h"), p: [t("policies.accessibility.limitations.p")] },
     { h: t("policies.accessibility.tell.h"), p: [t("policies.accessibility.tell.p")] },
+    { h: t("policies.accessibility.coordinator.h"), p: [t("policies.accessibility.coordinator.p")] },
     { p: [t("policies.accessibility.reviewed")] },
   ];
   return (

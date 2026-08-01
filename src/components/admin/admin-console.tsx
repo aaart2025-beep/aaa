@@ -382,6 +382,7 @@ export function AdminConsole({ initialContent, textKeys }: AdminConsoleProps) {
               { href: "/admin/orders", label: "Orders" },
               { href: "/admin/messages", label: "Messages" },
               { href: "/admin/customers", label: "Customers" },
+              { href: "/admin/reviews", label: "Reviews" },
               { href: "/admin/media", label: "Media" },
             ].map((l) => (
               <Link
