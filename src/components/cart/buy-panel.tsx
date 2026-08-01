@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useCart } from "@/lib/cart/store";
 import { useT } from "@/lib/i18n/context";
-import { TransitionLink } from "@/components/transition/page-transition";
 
 /* The product buy area: a size selector (when the piece has real size options)
  * plus the price, a "Care & washing" slot and "Add to bag". The selected size
@@ -19,6 +18,7 @@ export function BuyPanel({
   soldOut = false,
   priceSlot,
   careSlot,
+  guideSlot,
 }: {
   slug: string;
   name: string;
@@ -32,6 +32,9 @@ export function BuyPanel({
   soldOut?: boolean;
   priceSlot: React.ReactNode;
   careSlot: React.ReactNode;
+  /** This product's size-guide trigger (a pop-up), shown beside the Size label.
+   * Omitted when the piece has no size guide (and no site-wide fallback). */
+  guideSlot?: React.ReactNode;
 }) {
   const add = useCart((s) => s.add);
   const t = useT();
@@ -58,12 +61,7 @@ export function BuyPanel({
         <div className="mb-3.5 border-t border-dashed border-ink/30 pt-3">
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="font-archivo text-[11px] font-bold uppercase tracking-[0.16em] text-ink">{t("chrome.size")}</span>
-            <TransitionLink
-              href="/policies/sizes"
-              className="font-typewriter inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-ink/60 underline decoration-ink/30 underline-offset-2 transition-colors hover:text-ink"
-            >
-              {t("shop.sizeGuide")} <span aria-hidden>↗</span>
-            </TransitionLink>
+            {guideSlot}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {sizes.map((s) => {

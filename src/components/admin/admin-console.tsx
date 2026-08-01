@@ -50,6 +50,7 @@ const LABELS: Record<string, { label: string; hint?: string }> = {
   "nav.shop": { label: "Menu — “Shop” link" },
   "nav.create": { label: "Menu — “Create” link" },
   "nav.collections": { label: "Menu — “Collections” link" },
+  "nav.reviews": { label: "Menu — “Reviews” link" },
   "nav.about": { label: "Menu — “About” link" },
   "nav.contact": { label: "Menu — “Contact” link" },
   "hero.headlineA": { label: "Hero headline — line 1", hint: "Big text shown at the end of the home video." },

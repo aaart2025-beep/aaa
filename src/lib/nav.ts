@@ -13,11 +13,12 @@ export interface NavItem {
   side: "left" | "right";
 }
 
-/** Menu order: Shop · Collections · Create, then About · Contact.
+/** Menu order: Shop · Collections · Reviews · Create, then About · Contact.
  * ("A Book" is hidden for now — its /a-book route still works by URL.) */
 export const NAV_ITEMS: NavItem[] = [
   { key: "shop", href: "/shop", fallback: "Shop", side: "left" },
   { key: "collections", href: "/collection", fallback: "Collections", side: "left" },
+  { key: "reviews", href: "/reviews", fallback: "Reviews", side: "left" },
   { key: "create", href: "/create", fallback: "Create", side: "left" },
   { key: "about", href: "/about", fallback: "About", side: "right" },
   { key: "contact", href: "/contact", fallback: "Contact", side: "right" },

@@ -16,6 +16,19 @@ export interface ProductViews {
   fabric?: string;
 }
 
+/** One row of a size guide — a size and its exact measurements (free text). */
+export interface ProductSizeGuideRow {
+  size: string;
+  measure: string;
+}
+
+/** A per-product size guide: an optional intro line + a measurements table.
+ * Shape matches the site-wide SizeGuide so the same table renders both. */
+export interface ProductSizeGuide {
+  intro?: string;
+  rows: ProductSizeGuideRow[];
+}
+
 export interface Product {
   slug: string;
   name: string;
@@ -56,6 +69,9 @@ export interface Product {
   /** Sizes that are out of stock: still shown on the product, but struck-through
    * and not selectable. Lets the studio drop individual sizes without deleting them. */
   soldOutSizes?: string[];
+  /** This piece's own size guide — its measurements differ per item, so the
+   * product page shows this (falling back to the site-wide guide when unset). */
+  sizeGuide?: ProductSizeGuide;
 }
 
 /** The display zoom for one image of a product (1 = natural size). */

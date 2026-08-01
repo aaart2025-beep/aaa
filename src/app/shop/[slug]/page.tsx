@@ -14,6 +14,7 @@ import { SpecCard } from "@/components/paper/spec-card";
 import { BuyPanel } from "@/components/cart/buy-panel";
 import { AaaLogo } from "@/components/book/aaa-logo";
 import { PolicyDialog } from "@/components/policy/policy-dialog";
+import { SizeGuideTable } from "@/components/shop/size-guide-table";
 import { SketchDoodle } from "@/components/paper/sketch-doodle";
 import { CarePolicyContent } from "@/lib/policies";
 
@@ -159,6 +160,13 @@ export default async function ProductPage({ params }: PageProps) {
     (s) => !/^one\b/i.test(s),
   );
 
+  // Size guide: this piece's own measurements when set, else the site-wide
+  // guide. Studio-entered free text, so it isn't localised.
+  const rowHas = (g?: { rows?: { size?: string; measure?: string }[] }) =>
+    (g?.rows ?? []).some((r) => (r.size ?? "").trim() || (r.measure ?? "").trim());
+  const sizeGuide = rowHas(raw.sizeGuide) ? raw.sizeGuide : content.sizeGuide;
+  const hasSizeGuide = rowHas(sizeGuide);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -296,6 +304,26 @@ export default async function ProductPage({ params }: PageProps) {
                 >
                   <CarePolicyContent />
                 </PolicyDialog>
+              }
+              guideSlot={
+                hasSizeGuide ? (
+                  <PolicyDialog
+                    title={t("shop.sizeGuideTitle")}
+                    triggerLabel={
+                      <>
+                        {t("shop.sizeGuide")} <span aria-hidden>↗</span>
+                      </>
+                    }
+                    triggerClassName="font-typewriter inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-ink/60 underline decoration-ink/30 underline-offset-2 transition-colors hover:text-ink"
+                  >
+                    <SizeGuideTable
+                      guide={sizeGuide}
+                      sizeCol={t("shop.sizeCol")}
+                      measureCol={t("shop.measureCol")}
+                      emptyText={t("shop.sizeGuideEmpty")}
+                    />
+                  </PolicyDialog>
+                ) : undefined
               }
             />
           </div>

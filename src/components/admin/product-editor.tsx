@@ -221,6 +221,8 @@ export function ProductEditor({
 
       <SpecOverrides product={product} onChange={onChange} />
 
+      <SizeGuideOverride product={product} onChange={onChange} />
+
       <button
         onClick={() => {
           if (confirm("Delete this product? It’s removed when you Save.")) onRemove();
@@ -469,6 +471,103 @@ function SpecOverrides({
               />
             </Field>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- per-product size guide ---------------- */
+
+function SizeGuideOverride({
+  product,
+  onChange,
+}: {
+  product: ContentProduct;
+  onChange: (patch: Partial<ContentProduct>) => void;
+}) {
+  const guide = product.sizeGuide ?? { intro: "", rows: [] };
+  const rows = guide.rows ?? [];
+  const [open, setOpen] = React.useState(rows.length > 0);
+
+  // Write back, keeping in-progress rows so typing/adding works, but dropping
+  // the field entirely once there are no rows and no intro — then the product
+  // falls back to the site-wide guide. (Blank rows read as "no guide" too.)
+  const commit = (next: { intro?: string; rows: { size: string; measure: string }[] }) => {
+    const hasRows = next.rows.length > 0;
+    const hasIntro = (next.intro ?? "").trim().length > 0;
+    onChange({ sizeGuide: hasRows || hasIntro ? { intro: next.intro, rows: next.rows } : undefined });
+  };
+
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.015]">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between px-3 py-2 text-left text-[12px] text-neutral-400 hover:text-white"
+      >
+        <span>
+          Size guide for this piece{" "}
+          <span className="text-neutral-600">— its own measurements pop-up (falls back to the site-wide guide when empty)</span>
+        </span>
+        <span>{open ? "▾" : "▸"}</span>
+      </button>
+      {open && (
+        <div className="flex flex-col gap-3 border-t border-white/10 p-3">
+          <Field label="Intro (optional)" hint="A short line shown above this piece's table.">
+            <textarea
+              value={guide.intro ?? ""}
+              onChange={(e) => commit({ ...guide, intro: e.target.value, rows })}
+              rows={2}
+              className={inputCls}
+            />
+          </Field>
+
+          <div className="flex flex-col gap-2">
+            <div className="hidden grid-cols-[6rem_1fr_2.25rem] gap-2 px-1 text-[11px] uppercase tracking-wider text-neutral-500 sm:grid">
+              <span>Size</span>
+              <span>Measurements</span>
+              <span />
+            </div>
+            {rows.map((r, i) => (
+              <div key={i} className="grid grid-cols-[5rem_1fr_2.25rem] items-center gap-2 sm:grid-cols-[6rem_1fr_2.25rem]">
+                <input
+                  value={r.size}
+                  placeholder="M"
+                  onChange={(e) => {
+                    const rr = rows.map((x, k) => (k === i ? { ...x, size: e.target.value } : x));
+                    commit({ ...guide, rows: rr });
+                  }}
+                  className={inputCls}
+                />
+                <input
+                  value={r.measure}
+                  placeholder="Chest 54cm · Length 72cm · Sleeve 63cm"
+                  onChange={(e) => {
+                    const rr = rows.map((x, k) => (k === i ? { ...x, measure: e.target.value } : x));
+                    commit({ ...guide, rows: rr });
+                  }}
+                  className={inputCls}
+                />
+                <button
+                  onClick={() => commit({ ...guide, rows: rows.filter((_, k) => k !== i) })}
+                  title="Remove row"
+                  className="rounded-md border border-red-500/30 py-2 text-[12px] text-red-300 transition hover:bg-red-500/10"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            {rows.length === 0 && (
+              <p className="text-[13px] text-neutral-500">No custom sizes — this piece uses the site-wide size guide.</p>
+            )}
+          </div>
+
+          <button
+            onClick={() => commit({ ...guide, rows: [...rows, { size: "", measure: "" }] })}
+            className="self-start rounded-lg bg-amber-400 px-4 py-2 text-[13px] font-medium text-neutral-900 transition hover:bg-amber-300"
+          >
+            + Add size
+          </button>
         </div>
       )}
     </div>
