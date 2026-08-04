@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { TransitionLink } from "@/components/transition/page-transition";
-import { resolveViews, sizesLabel, specOf, defaultSizes, priceInfo } from "@/lib/products";
+import { resolveViews, specOf, defaultSizes, priceInfo } from "@/lib/products";
 import { readContent } from "@/lib/content/store";
 import { getLang } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/dictionary";
@@ -15,6 +15,7 @@ import { BuyPanel } from "@/components/cart/buy-panel";
 import { AaaLogo } from "@/components/book/aaa-logo";
 import { PolicyDialog } from "@/components/policy/policy-dialog";
 import { SizeGuideTable } from "@/components/shop/size-guide-table";
+import { FitHeading } from "@/components/paper/fit-heading";
 import { SketchDoodle } from "@/components/paper/sketch-doodle";
 import { CarePolicyContent } from "@/lib/policies";
 
@@ -76,26 +77,6 @@ const FIT_KEY: Record<string, string> = {
   Adjustable: "shop.fitAdjustable",
   "One of one": "shop.fitOneOfOne",
 };
-const SHORT_DETAIL_KEY: Record<string, string> = {
-  Print: "shop.sdPrint",
-  Embroidery: "shop.sdEmbroidery",
-  "Hand-paint": "shop.sdHandPaint",
-  Appliqué: "shop.sdApplique",
-  Stitch: "shop.sdStitch",
-  Washed: "shop.sdWashed",
-};
-
-/** Short "fabric detail" tag from the print/finish method. */
-function shortDetail(print: string): string {
-  if (/print/i.test(print)) return "Print";
-  if (/embroid/i.test(print)) return "Embroidery";
-  if (/paint/i.test(print)) return "Hand-paint";
-  if (/appliqu/i.test(print)) return "Appliqué";
-  if (/stitch/i.test(print)) return "Stitch";
-  if (/wash/i.test(print)) return "Washed";
-  return print.split(" ")[0];
-}
-
 /** Up to n other pieces to suggest under a product — same category first, then
  * the rest of the catalog. Hidden pieces and the current one are skipped. */
 function pickRelated<T extends { slug: string; category: string; hidden?: boolean }>(all: T[], current: T, n: number): T[] {
@@ -131,25 +112,8 @@ export default async function ProductPage({ params }: PageProps) {
   // and translate each value. Fabric/Print resolve to detail strings, which we
   // map back to their aligned Hebrew detail by index.
   const spec = specOf(raw);
-  const detailHe = new Map<string, string>();
-  raw.details.forEach((d, i) => {
-    const he = product.details[i];
-    if (he) detailHe.set(d, he);
-  });
-  const trDetail = (s: string) => (lang === "he" ? detailHe.get(s) ?? s : s);
   const trGarment = (g: string) => (lang === "he" && GARMENT_KEY[g] ? t(GARMENT_KEY[g]) : g);
   const trFit = (f: string) => (lang === "he" && FIT_KEY[f] ? t(FIT_KEY[f]) : f);
-  const trShort = (s: string) => (lang === "he" && SHORT_DETAIL_KEY[s] ? t(SHORT_DETAIL_KEY[s]) : s);
-  const trSizes = (): string => {
-    if (lang !== "he") return sizesLabel(raw);
-    const sizes = raw.sizes?.length ? raw.sizes : defaultSizes(raw.category);
-    if (sizes.length > 2 && sizes.every((s) => /^US \d+$/.test(s))) {
-      return `${sizes[0]} – ${sizes[sizes.length - 1]}`;
-    }
-    return sizes
-      .map((s) => (s === "One size" ? t("shop.sizeOneSize") : s === "One of one" ? t("shop.sizeOneOfOne") : s))
-      .join(", ");
-  };
 
   const { price: salePrice, original: listPrice, percent: discountPct } = priceInfo(product);
   const views = resolveViews(product);
@@ -166,6 +130,21 @@ export default async function ProductPage({ params }: PageProps) {
     (g?.rows ?? []).some((r) => (r.size ?? "").trim() || (r.measure ?? "").trim());
   const sizeGuide = rowHas(raw.sizeGuide) ? raw.sizeGuide : content.sizeGuide;
   const hasSizeGuide = rowHas(sizeGuide);
+
+  // Available sizes shown below the piece (sold-out ones dropped), localised.
+  const sizeToken = (s: string) =>
+    s === "One size" ? t("shop.sizeOneSize") : s === "One of one" ? t("shop.sizeOneOfOne") : s;
+  const allSizes = raw.sizes?.length ? raw.sizes : defaultSizes(raw.category);
+  const availableSizes = allSizes.filter((s) => !(raw.soldOutSizes ?? []).includes(s));
+  const availableSizesLabel =
+    availableSizes.length > 2 && availableSizes.every((s) => /^US \d+$/.test(s))
+      ? `${availableSizes[0]} – ${availableSizes[availableSizes.length - 1]}`
+      : availableSizes.length
+        ? availableSizes.map(sizeToken).join(", ")
+        : t("shop.soldOut");
+
+  // The description button appears only when the piece has description copy.
+  const hasDescription = (product.description ?? "").trim().length > 0;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -200,11 +179,13 @@ export default async function ProductPage({ params }: PageProps) {
         </TransitionLink>
 
         <article className="flex min-h-0 flex-1 flex-col">
-          {/* title — masthead already carries the logo, so no second mark here */}
-          <div className="shrink-0 py-2.5 text-center">
-            <h1 className="font-archivo text-[clamp(1.5rem,4.4vw,2.8rem)] font-extrabold uppercase leading-[0.98] tracking-tight text-ink">
-              {product.name}
-            </h1>
+          {/* title — masthead already carries the logo, so no second mark here.
+              FitHeading shrinks the font so any name length stays on one line. */}
+          <div className="shrink-0 overflow-hidden py-2.5 text-center">
+            <FitHeading
+              text={product.name}
+              className="font-archivo text-[clamp(1.5rem,4.4vw,2.8rem)] font-extrabold uppercase leading-[0.98] tracking-tight text-ink"
+            />
           </div>
 
           {/* spec grid */}
@@ -224,13 +205,7 @@ export default async function ProductPage({ params }: PageProps) {
                 <Field label={t("shop.fieldFit")} value={trFit(spec.fit)} />
               </div>
               <div className="py-2 pl-4">
-                <Field label={t("shop.fieldFabricDetail")} value={trShort(shortDetail(spec.print))} />
-              </div>
-              <div className="border-r border-t border-dashed border-ink/30 py-2 pr-4">
-                <Field label={t("shop.fieldSize")} value={trSizes()} />
-              </div>
-              <div className="border-t border-dashed border-ink/30 py-2 pl-4">
-                <Field label={t("shop.fieldDate")} value={spec.date} />
+                <Field label={t("shop.fieldFabricDetail")} value={t("shop.handMade")} />
               </div>
             </div>
           </div>
@@ -249,13 +224,15 @@ export default async function ProductPage({ params }: PageProps) {
             />
           </div>
 
-          {/* fabric + print */}
+          {/* available sizes (left) + sold-out stamp (right) */}
           <div className="shrink-0 border-t border-ink/60">
-            <div className="py-2">
-              <Field label={t("shop.fieldFabric")} value={trDetail(spec.fabric)} />
-            </div>
-            <div className="border-t border-dashed border-ink/30 py-2">
-              <Field label={t("shop.fieldPrint")} value={trDetail(spec.print)} />
+            <div className="flex items-center justify-between gap-3 py-2">
+              <Field label={t("shop.fieldSizes")} value={availableSizesLabel} />
+              {product.soldOut && (
+                <span className="inline-block shrink-0 -rotate-[4deg] rounded border-2 border-red-600/80 bg-paper px-3 py-1 font-archivo text-[13px] font-extrabold uppercase tracking-[0.16em] text-red-600 shadow-[2px_2px_0_rgba(40,34,24,0.2)]">
+                  {t("shop.soldOut")}
+                </span>
+              )}
             </div>
           </div>
 
@@ -273,13 +250,6 @@ export default async function ProductPage({ params }: PageProps) {
                 </span>
               </p>
             ) : null}
-            {product.soldOut ? (
-              <p className="mb-2">
-                <span className="inline-block -rotate-[4deg] rounded border-2 border-red-600/80 bg-paper px-3 py-1 font-archivo text-[13px] font-extrabold uppercase tracking-[0.16em] text-red-600 shadow-[2px_2px_0_rgba(40,34,24,0.2)]">
-                  {t("shop.soldOut")}
-                </span>
-              </p>
-            ) : null}
             <BuyPanel
               slug={product.slug}
               name={product.name}
@@ -287,6 +257,7 @@ export default async function ProductPage({ params }: PageProps) {
               image={product.images[0]}
               sizes={buyableSizes}
               unavailableSizes={product.soldOutSizes}
+              colors={product.colors ?? []}
               soldOut={product.soldOut}
               priceSlot={
                 <PaintPrice
@@ -322,6 +293,23 @@ export default async function ProductPage({ params }: PageProps) {
                       measureCol={t("shop.measureCol")}
                       emptyText={t("shop.sizeGuideEmpty")}
                     />
+                  </PolicyDialog>
+                ) : undefined
+              }
+              descSlot={
+                hasDescription ? (
+                  <PolicyDialog
+                    title={t("shop.description")}
+                    triggerLabel={
+                      <>
+                        {t("shop.description")} <span aria-hidden>↗</span>
+                      </>
+                    }
+                    triggerClassName="font-typewriter inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.14em] text-ink/60 underline decoration-ink/30 underline-offset-2 transition-colors hover:text-ink"
+                  >
+                    <p className="font-typewriter text-[12.5px] leading-[1.8] tracking-[0.02em] text-ink/80">
+                      {product.description}
+                    </p>
                   </PolicyDialog>
                 ) : undefined
               }

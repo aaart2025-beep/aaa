@@ -45,6 +45,8 @@ export const chrome: Record<Lang, Record<string, string>> = {
     "chrome.addToBag": "Add to bag",
     "chrome.size": "Size",
     "chrome.pickSize": "← pick a size",
+    "chrome.colour": "Colour",
+    "chrome.pickColour": "← pick a colour",
     // footer
     "chrome.followStudio": "Follow the studio",
     "chrome.wearYourArt": "Wear your art",
@@ -121,6 +123,8 @@ export const chrome: Record<Lang, Record<string, string>> = {
     "chrome.addToBag": "הוספה לעגלה",
     "chrome.size": "מידה",
     "chrome.pickSize": "← בחרו מידה",
+    "chrome.colour": "צבע",
+    "chrome.pickColour": "← בחרו צבע",
     // footer
     "chrome.followStudio": "עקבו אחרי הסטודיו",
     "chrome.wearYourArt": "ללבוש אמנות",

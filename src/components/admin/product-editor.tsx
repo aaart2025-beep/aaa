@@ -182,42 +182,20 @@ export function ProductEditor({
         />
       </Field>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Sizes (one per line)" hint="Leave blank for the standard set for this type. Set just one line for a single size.">
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={(product.sizes ?? []).join("\n")}
-              onChange={(e) => onChange({ sizes: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
-              rows={3}
-              placeholder={"XS\nS\nM\nL\nXL"}
-              className={inputCls}
-            />
-            <SizeStock product={product} onChange={onChange} />
-          </div>
-        </Field>
-        <Field label="Colours (hex or name, one per line)">
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={(product.colors ?? []).join("\n")}
-              onChange={(e) => onChange({ colors: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
-              rows={3}
-              placeholder={"#1b2a4a\nEcru\n#b8462f"}
-              className={inputCls}
-            />
-            {(product.colors ?? []).length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {(product.colors ?? []).map((c, i) =>
-                  isHex(c) ? (
-                    <span key={i} className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: c }} title={c} />
-                  ) : (
-                    <span key={i} className="rounded-full border border-white/20 px-2 py-0.5 text-[11px] text-neutral-300">{c}</span>
-                  ),
-                )}
-              </div>
-            )}
-          </div>
-        </Field>
-      </div>
+      <Field label="Sizes (one per line)" hint="Leave blank for the standard set for this type. Set just one line for a single size.">
+        <div className="flex flex-col gap-2">
+          <textarea
+            value={(product.sizes ?? []).join("\n")}
+            onChange={(e) => onChange({ sizes: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+            rows={3}
+            placeholder={"XS\nS\nM\nL\nXL"}
+            className={inputCls}
+          />
+          <SizeStock product={product} onChange={onChange} />
+        </div>
+      </Field>
+
+      <ColorPalette product={product} onChange={onChange} />
 
       <SpecOverrides product={product} onChange={onChange} />
 
@@ -474,6 +452,120 @@ function SpecOverrides({
         </div>
       )}
     </div>
+  );
+}
+
+/* ---------------- colour palette (a shopper's purchase choice) ---------------- */
+
+const PRESET_COLORS = ["#000000", "#ffffff", "#8b5cf6", "#eb5757", "#2d9cdb", "#f2c94c", "#27ae60", "#8a5a2b"];
+
+function ColorPalette({
+  product,
+  onChange,
+}: {
+  product: ContentProduct;
+  onChange: (patch: Partial<ContentProduct>) => void;
+}) {
+  const colors = product.colors ?? [];
+  const [hex, setHex] = React.useState("#000000");
+  const [name, setName] = React.useState("");
+
+  const setColors = (next: string[]) => onChange({ colors: next.length ? next : undefined });
+  const add = (c: string) => {
+    const v = c.trim();
+    if (!v) return;
+    if (colors.some((x) => x.toLowerCase() === v.toLowerCase())) return;
+    setColors([...colors, v]);
+  };
+  const removeAt = (i: number) => setColors(colors.filter((_, k) => k !== i));
+
+  return (
+    <Field
+      label="Colours"
+      hint="The palette a shopper picks from on the product page. Add a swatch with the colour picker, or a named colour like “Ecru”. Names read best in the cart and order emails. Leave empty for no colour choice."
+    >
+      <div className="flex flex-col gap-3">
+        {colors.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {colors.map((c, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.03] py-1 pl-1.5 pr-2"
+              >
+                {isHex(c) ? (
+                  <span className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: c }} />
+                ) : (
+                  <span className="h-5 w-5 rounded-full border border-dashed border-white/25" />
+                )}
+                <span className="text-[12px] text-neutral-200">{c}</span>
+                <button
+                  onClick={() => removeAt(i)}
+                  title="Remove colour"
+                  className="text-[12px] leading-none text-red-300 transition hover:text-red-200"
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[12px] text-neutral-500">No colours yet — this piece shows without a colour picker.</p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="color"
+            value={hex}
+            onChange={(e) => setHex(e.target.value)}
+            title="Pick a colour"
+            className="h-9 w-12 cursor-pointer rounded border border-white/15 bg-transparent p-0.5"
+          />
+          <button
+            onClick={() => add(hex)}
+            className="rounded-lg border border-white/15 px-3 py-1.5 text-[12px] text-neutral-200 transition hover:bg-white/5"
+          >
+            Add swatch
+          </button>
+          <span className="text-[11px] text-neutral-600">or</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                add(name);
+                setName("");
+              }
+            }}
+            placeholder="Named colour (e.g. Ecru)"
+            className={`${inputCls} max-w-[190px]`}
+          />
+          <button
+            onClick={() => {
+              add(name);
+              setName("");
+            }}
+            className="rounded-lg border border-white/15 px-3 py-1.5 text-[12px] text-neutral-200 transition hover:bg-white/5"
+          >
+            Add name
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] text-neutral-600">Quick add:</span>
+          {PRESET_COLORS.map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => add(p)}
+              title={p}
+              className="h-6 w-6 rounded-full border border-white/20 transition hover:scale-110"
+              style={{ backgroundColor: p }}
+            />
+          ))}
+        </div>
+      </div>
+    </Field>
   );
 }
 
