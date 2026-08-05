@@ -197,6 +197,8 @@ export function ProductEditor({
 
       <ColorPalette product={product} onChange={onChange} />
 
+      <ColorImagesEditor product={product} onChange={onChange} />
+
       <SpecOverrides product={product} onChange={onChange} />
 
       <SizeGuideOverride product={product} onChange={onChange} />
@@ -477,7 +479,18 @@ function ColorPalette({
     if (colors.some((x) => x.toLowerCase() === v.toLowerCase())) return;
     setColors([...colors, v]);
   };
-  const removeAt = (i: number) => setColors(colors.filter((_, k) => k !== i));
+  const removeAt = (i: number) => {
+    const removed = colors[i];
+    const nextColors = colors.filter((_, k) => k !== i);
+    const patch: Partial<ContentProduct> = { colors: nextColors.length ? nextColors : undefined };
+    // Drop that colour's photo set too, so it doesn't linger.
+    if (product.colorImages && removed in product.colorImages) {
+      const nextImgs = { ...product.colorImages };
+      delete nextImgs[removed];
+      patch.colorImages = Object.keys(nextImgs).length ? nextImgs : undefined;
+    }
+    onChange(patch);
+  };
 
   return (
     <Field
@@ -566,6 +579,67 @@ function ColorPalette({
         </div>
       </div>
     </Field>
+  );
+}
+
+/* ---------------- per-colour photo sets ---------------- */
+
+function ColorImagesEditor({
+  product,
+  onChange,
+}: {
+  product: ContentProduct;
+  onChange: (patch: Partial<ContentProduct>) => void;
+}) {
+  const colors = product.colors ?? [];
+  const map = product.colorImages ?? {};
+  const [open, setOpen] = React.useState(false);
+  if (colors.length === 0) return null;
+
+  const setFor = (color: string, images: string[]) => {
+    const next = { ...map };
+    if (images.length) next[color] = images;
+    else delete next[color];
+    onChange({ colorImages: Object.keys(next).length ? next : undefined });
+  };
+
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.015]">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between px-3 py-2 text-left text-[12px] text-neutral-400 hover:text-white"
+      >
+        <span>
+          Photos per colour{" "}
+          <span className="text-neutral-600">— give each colour its own photos; the gallery swaps when a shopper picks it</span>
+        </span>
+        <span>{open ? "▾" : "▸"}</span>
+      </button>
+      {open && (
+        <div className="flex flex-col gap-4 border-t border-white/10 p-3">
+          {colors.map((color) => (
+            <div key={color} className="rounded-lg border border-white/10 p-3">
+              <div className="mb-2 flex items-center gap-2">
+                {isHex(color) ? (
+                  <span className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: color }} />
+                ) : (
+                  <span className="h-5 w-5 rounded-full border border-dashed border-white/25" />
+                )}
+                <span className="text-[13px] font-medium text-neutral-200">{color}</span>
+                {(map[color]?.length ?? 0) === 0 && (
+                  <span className="text-[11px] text-neutral-500">— uses the main photos</span>
+                )}
+              </div>
+              <ImageManager
+                images={map[color] ?? []}
+                onChange={(imgs) => setFor(color, imgs)}
+                note="Shown when this colour is selected. Leave empty to fall back to the main photos."
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

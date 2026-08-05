@@ -67,6 +67,11 @@ export const shop: Record<Lang, Record<string, string>> = {
     "shop.designedBy": "Designed by Amit Amar Art",
     "shop.careWashing": "Care & washing",
     "shop.description": "Description",
+    "shop.orderNow": "Order now",
+    "shop.orderNowTitle": "Made to order",
+    "shop.orderNowBody":
+      "This piece is currently sold out — but many of our pieces can be re-made as a personal, one-off commission. Message us and we'll arrange a custom order for you, including timing and options.",
+    "shop.orderNowCta": "Message us on WhatsApp",
     "shop.addToCart": "Add to Cart",
     "shop.soldOut": "Sold out",
     "shop.onePiece": "One piece only",
@@ -217,6 +222,11 @@ export const shop: Record<Lang, Record<string, string>> = {
     "shop.designedBy": "עוצב על ידי Amit Amar Art",
     "shop.careWashing": "טיפוח וכביסה",
     "shop.description": "תיאור",
+    "shop.orderNow": "הזמן עכשיו",
+    "shop.orderNowTitle": "הזמנה אישית",
+    "shop.orderNowBody":
+      "הפריט אזל כרגע מהמלאי — אך ניתן ליצור מחדש רבים מהפריטים שלנו בהזמנה אישית, כיצירה חד-פעמית לפי בקשה. כתבו לנו ונתאם עבורכם הזמנה מותאמת אישית, כולל זמני אספקה ואפשרויות.",
+    "shop.orderNowCta": "כתבו לנו בוואטסאפ",
     "shop.addToCart": "הוספה לעגלה",
     "shop.soldOut": "אזל המלאי",
     "shop.onePiece": "פריט יחיד",

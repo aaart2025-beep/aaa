@@ -72,6 +72,10 @@ export interface Product {
   /** This piece's own size guide — its measurements differ per item, so the
    * product page shows this (falling back to the site-wide guide when unset). */
   sizeGuide?: ProductSizeGuide;
+  /** Per-colour photo sets, keyed by the colour value in `colors` (hex or name).
+   * When a shopper selects a colour that has photos here, the gallery swaps to
+   * them; colours without their own photos fall back to the main `images`. */
+  colorImages?: Record<string, string[]>;
 }
 
 /** The display zoom for one image of a product (1 = natural size). */
@@ -102,7 +106,7 @@ export function priceInfo(p: Pick<Product, "price" | "discount">): PriceInfo {
 export function defaultSizes(category: ProductCategory): string[] {
   switch (category) {
     case "Footwear":
-      return ["US 7", "US 8", "US 9", "US 10", "US 11", "US 12"];
+      return ["EU 39", "EU 40", "EU 41", "EU 42", "EU 43", "EU 44", "EU 45", "EU 46"];
     case "Headwear":
       return ["One size"];
     case "Art Object":
@@ -749,10 +753,10 @@ export function specOf(p: Product): ProductSpec {
   return { garment, fit, fabric, print, date: p.date ?? "2026" };
 }
 
-/** Sizes line for the spec sheet ("S, M, L, XL" / "US 7 – US 12" / …). */
+/** Sizes line for the spec sheet ("S, M, L, XL" / "EU 39 – EU 46" / …). */
 export function sizesLabel(p: Product): string {
   const sizes = p.sizes?.length ? p.sizes : defaultSizes(p.category);
-  if (sizes.length > 2 && sizes.every((s) => /^US \d+$/.test(s))) {
+  if (sizes.length > 2 && sizes.every((s) => /^(US|EU) \d+$/.test(s))) {
     return `${sizes[0]} – ${sizes[sizes.length - 1]}`;
   }
   return sizes.join(", ");

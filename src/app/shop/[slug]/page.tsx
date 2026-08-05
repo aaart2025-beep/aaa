@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { TransitionLink } from "@/components/transition/page-transition";
-import { resolveViews, specOf, defaultSizes, priceInfo } from "@/lib/products";
+import { specOf, defaultSizes, priceInfo } from "@/lib/products";
 import { readContent } from "@/lib/content/store";
 import { getLang } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/dictionary";
@@ -9,10 +9,11 @@ import { localizeProduct } from "@/lib/i18n/products-he";
 import { PaperShell } from "@/components/paper/paper-shell";
 import { PaperHeader } from "@/components/paper/paper-header";
 import { PaintPrice } from "@/components/paper/paint-price";
-import { SpecImage } from "@/components/paper/spec-image";
 import { SpecCard } from "@/components/paper/spec-card";
 import { BuyPanel } from "@/components/cart/buy-panel";
+import { ColorVariantProvider, ColorGallery } from "@/components/shop/color-variant";
 import { AaaLogo } from "@/components/book/aaa-logo";
+import { WHATSAPP_URL } from "@/components/paper/paper-footer";
 import { PolicyDialog } from "@/components/policy/policy-dialog";
 import { SizeGuideTable } from "@/components/shop/size-guide-table";
 import { FitHeading } from "@/components/paper/fit-heading";
@@ -116,7 +117,6 @@ export default async function ProductPage({ params }: PageProps) {
   const trFit = (f: string) => (lang === "he" && FIT_KEY[f] ? t(FIT_KEY[f]) : f);
 
   const { price: salePrice, original: listPrice, percent: discountPct } = priceInfo(product);
-  const views = resolveViews(product);
   const swatches = (product.colors ?? []).filter((c) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c)).slice(0, 5);
   // Buyable sizes: drop single "One size" / "One of one" placeholders so we only
   // show a picker when there's a real choice to make.
@@ -137,7 +137,7 @@ export default async function ProductPage({ params }: PageProps) {
   const allSizes = raw.sizes?.length ? raw.sizes : defaultSizes(raw.category);
   const availableSizes = allSizes.filter((s) => !(raw.soldOutSizes ?? []).includes(s));
   const availableSizesLabel =
-    availableSizes.length > 2 && availableSizes.every((s) => /^US \d+$/.test(s))
+    availableSizes.length > 2 && availableSizes.every((s) => /^(US|EU) \d+$/.test(s))
       ? `${availableSizes[0]} – ${availableSizes[availableSizes.length - 1]}`
       : availableSizes.length
         ? availableSizes.map(sizeToken).join(", ")
@@ -178,6 +178,7 @@ export default async function ProductPage({ params }: PageProps) {
           <span aria-hidden>←</span> {lang === "he" ? t("shop.backToShop") : text("product.back", "Back to the shop")}
         </TransitionLink>
 
+        <ColorVariantProvider colors={raw.colors ?? []}>
         <article className="flex min-h-0 flex-1 flex-col">
           {/* title — masthead already carries the logo, so no second mark here.
               FitHeading shrinks the font so any name length stays on one line. */}
@@ -213,7 +214,7 @@ export default async function ProductPage({ params }: PageProps) {
           {/* the piece — centred and large in the middle, floating on the paper.
               Grows to fill on tall screens, never crushed below the floor. */}
           <div className="relative flex min-h-[clamp(360px,50vh,480px)] flex-1 flex-col border-t border-ink/60 py-3 sm:min-h-[clamp(420px,62vh,760px)]">
-            <SpecImage name={product.name} views={views} />
+            <ColorGallery product={product} colorImages={raw.colorImages} />
             {/* sold-out is shown as a stamp beside the price below — never over
                 the piece on the product page, so the garment stays fully visible */}
             {/* a working drawing inked into the sheet's margin */}
@@ -257,7 +258,8 @@ export default async function ProductPage({ params }: PageProps) {
               image={product.images[0]}
               sizes={buyableSizes}
               unavailableSizes={product.soldOutSizes}
-              colors={product.colors ?? []}
+              colors={raw.colors ?? []}
+              colorImages={raw.colorImages}
               soldOut={product.soldOut}
               priceSlot={
                 <PaintPrice
@@ -313,6 +315,29 @@ export default async function ProductPage({ params }: PageProps) {
                   </PolicyDialog>
                 ) : undefined
               }
+              orderSlot={
+                product.soldOut ? (
+                  <PolicyDialog
+                    title={t("shop.orderNowTitle")}
+                    triggerLabel={t("shop.orderNow")}
+                    triggerClassName="chip-lime font-archivo px-5 py-3 text-[12px] font-bold uppercase tracking-[0.16em]"
+                  >
+                    <div className="flex flex-col gap-3">
+                      <p className="font-typewriter text-[12.5px] leading-[1.8] tracking-[0.02em] text-ink/80">
+                        {t("shop.orderNowBody")}
+                      </p>
+                      <a
+                        href={WHATSAPP_URL}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="chip-lime font-archivo inline-flex w-fit items-center gap-2 px-5 py-3 text-[12px] font-bold uppercase tracking-[0.16em]"
+                      >
+                        {t("shop.orderNowCta")}
+                      </a>
+                    </div>
+                  </PolicyDialog>
+                ) : undefined
+              }
             />
           </div>
 
@@ -324,6 +349,7 @@ export default async function ProductPage({ params }: PageProps) {
             <AaaLogo className="h-5 w-auto opacity-80" />
           </div>
         </article>
+        </ColorVariantProvider>
       </div>
 
       {relatedLoc.length > 0 && (

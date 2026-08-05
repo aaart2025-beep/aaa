@@ -3,15 +3,17 @@
 import * as React from "react";
 import { useCart } from "@/lib/cart/store";
 import { useT } from "@/lib/i18n/context";
+import { useColorVariant } from "@/components/shop/color-variant";
 
 const isHex = (c: string) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c.trim());
 
 /* The product buy area: an optional size selector and colour selector (when the
  * piece offers a real choice), the price, the "Description" / "Size guide" /
  * "Care & washing" slots and "Add to bag". The chosen size and colour ride along
- * as the cart line's variant (e.g. "M · Black"). priceSlot / careSlot / guideSlot
- * / descSlot are rendered on the server and passed in so the layout stays one
- * client island. */
+ * as the cart line's variant (e.g. "M · Black"). Selecting a colour also swaps
+ * the gallery (via the shared colour-variant context) and the cart thumbnail.
+ * priceSlot / careSlot / guideSlot / descSlot / orderSlot are rendered on the
+ * server and passed in so the layout stays one client island. */
 export function BuyPanel({
   slug,
   name,
@@ -20,11 +22,13 @@ export function BuyPanel({
   sizes,
   unavailableSizes,
   colors = [],
+  colorImages,
   soldOut = false,
   priceSlot,
   careSlot,
   guideSlot,
   descSlot,
+  orderSlot,
 }: {
   slug: string;
   name: string;
@@ -36,6 +40,8 @@ export function BuyPanel({
   unavailableSizes?: string[];
   /** Colour options (hex → swatch, otherwise a labelled chip). 0–1 → no picker. */
   colors?: string[];
+  /** Per-colour photo sets, so the cart thumbnail matches the chosen colour. */
+  colorImages?: Record<string, string[]>;
   /** Out of stock — the buy button is replaced by a "sold out" state. */
   soldOut?: boolean;
   priceSlot: React.ReactNode;
@@ -44,6 +50,8 @@ export function BuyPanel({
   guideSlot?: React.ReactNode;
   /** This product's description trigger (a pop-up). Omitted when there's none. */
   descSlot?: React.ReactNode;
+  /** "Order now" custom-order trigger, shown only when the piece is sold out. */
+  orderSlot?: React.ReactNode;
 }) {
   const add = useCart((s) => s.add);
   const t = useT();
@@ -55,9 +63,12 @@ export function BuyPanel({
   const [size, setSize] = React.useState<string | null>(needSize ? null : (available[0] ?? null));
   const [hint, setHint] = React.useState(false);
 
-  const needColour = colors.length > 1;
-  const [colour, setColour] = React.useState<string | null>(needColour ? null : (colors[0] ?? null));
-  const [colourHint, setColourHint] = React.useState(false);
+  // Selected colour comes from the shared context (so the gallery swaps too);
+  // fall back to local state if the panel is ever used without a provider.
+  const ctx = useColorVariant();
+  const [localColour, setLocalColour] = React.useState<string | null>(colors[0] ?? null);
+  const colour = ctx ? ctx.selected : localColour;
+  const setColour = ctx ? ctx.setSelected : setLocalColour;
 
   const onAdd = () => {
     if (disabled) return;
@@ -65,12 +76,9 @@ export function BuyPanel({
       setHint(true);
       return;
     }
-    if (needColour && !colour) {
-      setColourHint(true);
-      return;
-    }
     const variant = [size, colour].filter(Boolean).join(" · ") || undefined;
-    add({ slug, name, price, image, variant });
+    const thumb = (colour && colorImages?.[colour]?.[0]) || image;
+    add({ slug, name, price, image: thumb, variant });
   };
 
   return (
@@ -135,10 +143,6 @@ export function BuyPanel({
           <div className="flex flex-wrap items-center gap-2">
             {colors.map((c) => {
               const active = colour === c;
-              const pick = () => {
-                setColour(c);
-                setColourHint(false);
-              };
               return isHex(c) ? (
                 <button
                   key={c}
@@ -146,7 +150,7 @@ export function BuyPanel({
                   aria-pressed={active}
                   aria-label={c}
                   title={c}
-                  onClick={pick}
+                  onClick={() => setColour(c)}
                   className={`h-8 w-8 rounded-full border transition-transform ${
                     active ? "border-ink ring-2 ring-ink ring-offset-2 ring-offset-paper" : "border-ink/40 hover:scale-105"
                   }`}
@@ -157,7 +161,7 @@ export function BuyPanel({
                   key={c}
                   type="button"
                   aria-pressed={active}
-                  onClick={pick}
+                  onClick={() => setColour(c)}
                   className={`font-typewriter px-3 py-2 text-[12px] uppercase tracking-[0.08em] transition-colors sm:py-1.5 sm:text-[11px] ${
                     active ? "bg-ink text-paper" : "border border-ink/40 text-ink/75 hover:border-ink hover:text-ink"
                   }`}
@@ -166,9 +170,6 @@ export function BuyPanel({
                 </button>
               );
             })}
-            {colourHint && (
-              <span className="font-typewriter text-[9px] uppercase tracking-[0.14em] text-red-600">{t("chrome.pickColour")}</span>
-            )}
           </div>
         </div>
       )}
@@ -178,12 +179,15 @@ export function BuyPanel({
         <div className="flex items-center gap-2.5">
           {careSlot}
           {disabled ? (
-            <span
-              className="font-archivo cursor-not-allowed border-2 border-red-600/70 px-7 py-3 text-[12px] font-bold uppercase tracking-[0.18em] text-red-600"
-              aria-disabled="true"
-            >
-              {t("shop.soldOut")}
-            </span>
+            <div className="flex flex-wrap items-center justify-end gap-2.5">
+              <span
+                className="font-archivo cursor-not-allowed border-2 border-red-600/70 px-5 py-3 text-[12px] font-bold uppercase tracking-[0.18em] text-red-600"
+                aria-disabled="true"
+              >
+                {t("shop.soldOut")}
+              </span>
+              {orderSlot}
+            </div>
           ) : (
             <button
               type="button"
