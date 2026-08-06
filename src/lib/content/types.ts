@@ -26,6 +26,17 @@ export interface SizeGuide {
   rows: SizeGuideRow[];
 }
 
+/** Admin-managed size table for one product category. Everything is optional so
+ * an absent/partial entry falls back to the category's built-in defaults. */
+export interface CategorySizeConfig {
+  /** The selectable size options for this category (picker chips). */
+  sizes?: string[];
+  /** The measurements table shown via the size-table button for this category. */
+  guide?: SizeGuide;
+  /** This category is measured by dimensions (H/W/D) instead of wearable sizes. */
+  dimensions?: boolean;
+}
+
 /** A discount code applied at checkout. */
 export interface Coupon {
   code: string;
@@ -58,8 +69,11 @@ export interface SiteContent {
   collections: ContentCollection[];
   /** Which nav items the admin has toggled on/off (absent key → shown). */
   navVisible?: Record<string, boolean>;
-  /** Editable size guide (measurements per size). */
+  /** Editable size guide (measurements per size) — the site-wide fallback. */
   sizeGuide?: SizeGuide;
+  /** Per-category size tables (options + measurements + dimensions), keyed by
+   * the category name. Overrides the built-in defaults; falls back to sizeGuide. */
+  categorySizes?: Record<string, CategorySizeConfig>;
   /** Discount codes usable at checkout. */
   coupons?: Coupon[];
   /** Shipping options + free-shipping threshold. */

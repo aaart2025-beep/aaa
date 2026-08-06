@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { SiteContent, ContentProduct, ContentCollection, SizeGuide, Coupon, ShippingConfig, ShippingOption } from "@/lib/content/types";
+import type { SiteContent, ContentProduct, ContentCollection, SizeGuide, CategorySizeConfig, Coupon, ShippingConfig, ShippingOption } from "@/lib/content/types";
+import { CATEGORIES, categoryMeta } from "@/lib/products";
 import { LivePreview, type PreviewPage } from "@/components/admin/live-preview";
 import { ProductRow } from "@/components/admin/product-editor";
 import { Field, ImageManager, SectionHeading, inputCls, slugify, CollectionDndContext, type ImageDragRef } from "@/components/admin/admin-ui";
@@ -189,7 +190,7 @@ export function AdminConsole({ initialContent, textKeys }: AdminConsoleProps) {
     m.set("products", { label: "Products", href: "/shop" });
     m.set("collections", { label: "Collections", href: "/collection" });
     m.set("menu", { label: "Navigation", href: "/shop" });
-    m.set("sizeGuide", { label: "Size Guide", href: "/policies/sizes" });
+    m.set("sizeGuide", { label: "Size Tables", href: "/policies/sizes" });
     m.set("checkout", { label: "Checkout", href: "/checkout" });
     m.set("other", { label: "Other text", href: "/" });
     return m;
@@ -304,6 +305,11 @@ export function AdminConsole({ initialContent, textKeys }: AdminConsoleProps) {
     mutate((c) => ({ ...c, navVisible: { ...(c.navVisible ?? {}), [key]: visible } }));
   const setSizeGuide = (updater: (sg: SizeGuide) => SizeGuide) =>
     mutate((c) => ({ ...c, sizeGuide: updater(c.sizeGuide ?? { intro: "", rows: [] }) }));
+  const setCategorySizes = (category: string, updater: (cfg: CategorySizeConfig) => CategorySizeConfig) =>
+    mutate((c) => ({
+      ...c,
+      categorySizes: { ...(c.categorySizes ?? {}), [category]: updater(c.categorySizes?.[category] ?? {}) },
+    }));
   const setCoupons = (updater: (list: Coupon[]) => Coupon[]) =>
     mutate((c) => ({ ...c, coupons: updater(c.coupons ?? []) }));
   const setShipping = (updater: (s: ShippingConfig) => ShippingConfig) =>
@@ -648,9 +654,14 @@ export function AdminConsole({ initialContent, textKeys }: AdminConsoleProps) {
                 </div>
               )}
 
-              {/* SIZE GUIDE — the editable measurements table */}
+              {/* SIZE TABLES — per-category sizes + measurements, with a global fallback */}
               {section === "sizeGuide" && (
-                <SizeGuideEditor guide={content.sizeGuide ?? { intro: "", rows: [] }} onChange={setSizeGuide} />
+                <CategorySizesEditor
+                  content={content}
+                  onCategory={setCategorySizes}
+                  globalGuide={content.sizeGuide ?? { intro: "", rows: [] }}
+                  onGlobalGuide={setSizeGuide}
+                />
               )}
 
               {/* CHECKOUT — coupons + shipping */}
@@ -875,17 +886,18 @@ function CollectionEditor({
 function SizeGuideEditor({
   guide,
   onChange,
+  title = "Size Guide",
+  desc = "The measurements table on the Size Guide page (linked in the footer and on every product page). Add a row per size and type the exact numbers.",
 }: {
   guide: SizeGuide;
   onChange: (updater: (sg: SizeGuide) => SizeGuide) => void;
+  title?: string;
+  desc?: string;
 }) {
   const rows = guide.rows ?? [];
   return (
     <div className="mx-auto flex max-w-2xl flex-col gap-4">
-      <SectionHeading
-        title="Size Guide"
-        desc="The measurements table on the Size Guide page (linked in the footer and on every product page). Add a row per size and type the exact numbers."
-      />
+      <SectionHeading title={title} desc={desc} />
       <Field label="Intro (optional)" hint="A short line shown above the table.">
         <textarea
           value={guide.intro ?? ""}
@@ -945,6 +957,121 @@ function SizeGuideEditor({
       >
         + Add size
       </button>
+    </div>
+  );
+}
+
+/* ===================== size tables (per category) ===================== */
+
+function CategorySizesEditor({
+  content,
+  onCategory,
+  globalGuide,
+  onGlobalGuide,
+}: {
+  content: SiteContent;
+  onCategory: (category: string, updater: (cfg: CategorySizeConfig) => CategorySizeConfig) => void;
+  globalGuide: SizeGuide;
+  onGlobalGuide: (updater: (sg: SizeGuide) => SizeGuide) => void;
+}) {
+  const [cat, setCat] = React.useState<string>(CATEGORIES[0].key);
+  const meta = categoryMeta(cat);
+  const cfg = content.categorySizes?.[cat] ?? {};
+  const usesDim = typeof cfg.dimensions === "boolean" ? cfg.dimensions : Boolean(meta.dimensions);
+  const overridden = Boolean(cfg.sizes?.length);
+  const effectiveSizes = overridden ? cfg.sizes! : meta.sizes;
+
+  const setSizes = (next: string[]) => onCategory(cat, (c) => ({ ...c, sizes: next.length ? next : undefined }));
+
+  return (
+    <div className="mx-auto flex max-w-2xl flex-col gap-6">
+      <SectionHeading
+        title="Size Tables"
+        desc="Pick a category, then set the sizes shoppers can choose and the measurements table shown on its products. Empty = the built-in default. Changes apply to every product in that category automatically."
+      />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[12px] uppercase tracking-wider text-neutral-500">Category</span>
+        <select value={cat} onChange={(e) => setCat(e.target.value)} className={`${inputCls} max-w-[220px] bg-neutral-900`}>
+          {CATEGORIES.map((c) => (
+            <option key={c.key} value={c.key}>
+              {c.key}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <label className="flex cursor-pointer items-center gap-2 text-[13px] text-neutral-300">
+        <input
+          type="checkbox"
+          checked={usesDim}
+          onChange={(e) => onCategory(cat, (c) => ({ ...c, dimensions: e.target.checked }))}
+          className="h-4 w-4 accent-amber-400"
+        />
+        Measured by dimensions (Height / Width / Depth) instead of sizes
+      </label>
+
+      {!usesDim && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] uppercase tracking-wider text-neutral-500">
+              Sizes for “{cat}” {overridden ? "" : "(default)"}
+            </span>
+            {overridden && (
+              <button onClick={() => setSizes([])} className="text-[11px] text-neutral-400 underline transition hover:text-white">
+                Reset to default
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            {effectiveSizes.map((s, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={s}
+                  onChange={(e) => setSizes(effectiveSizes.map((x, k) => (k === i ? e.target.value : x)))}
+                  className={inputCls}
+                />
+                <button
+                  onClick={() => setSizes(effectiveSizes.filter((_, k) => k !== i))}
+                  title="Remove size"
+                  className="rounded-md border border-red-500/30 px-2.5 py-2 text-[12px] text-red-300 transition hover:bg-red-500/10"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+            {effectiveSizes.length === 0 && <p className="text-[13px] text-neutral-500">No sizes — add one below.</p>}
+          </div>
+          <button
+            onClick={() => setSizes([...effectiveSizes, ""])}
+            className="self-start rounded-lg bg-amber-400 px-4 py-2 text-[13px] font-medium text-neutral-900 transition hover:bg-amber-300"
+          >
+            + Add size
+          </button>
+        </div>
+      )}
+
+      {usesDim ? (
+        <p className="text-[13px] text-neutral-500">
+          Products in this category show Height / Width / Depth (set per product in the product editor) instead of a size picker.
+        </p>
+      ) : (
+        <SizeGuideEditor
+          title={`Measurements table — ${cat}`}
+          desc="Shown when a shopper opens “Size guide” on a product in this category. Leave empty to use the default table below."
+          guide={cfg.guide ?? { intro: "", rows: [] }}
+          onChange={(updater) => onCategory(cat, (c) => ({ ...c, guide: updater(c.guide ?? { intro: "", rows: [] }) }))}
+        />
+      )}
+
+      <details className="rounded-lg border border-white/10 bg-white/[0.015] p-3">
+        <summary className="cursor-pointer text-[12px] text-neutral-400 hover:text-white">
+          Default table — used when a category has no table of its own
+        </summary>
+        <div className="mt-4">
+          <SizeGuideEditor guide={globalGuide} onChange={onGlobalGuide} />
+        </div>
+      </details>
     </div>
   );
 }

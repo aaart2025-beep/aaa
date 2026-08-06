@@ -2,10 +2,8 @@
 
 import * as React from "react";
 import type { ContentProduct } from "@/lib/content/types";
-import { priceInfo, defaultSizes, type ProductCategory, type ProductViews, type ViewKey } from "@/lib/products";
+import { priceInfo, defaultSizes, categoryMeta, CATEGORIES, type ProductCategory, type ProductViews, type ViewKey } from "@/lib/products";
 import { Field, ImageManager, inputCls, formatUSD, isHex, slugify, uploadImage } from "./admin-ui";
-
-const CATEGORIES: ProductCategory[] = ["Headwear", "Footwear", "Clothing", "Art Object"];
 
 /* The product editor: photos, the five studio views, story, sizing, colours
  * and optional spec-sheet overrides — everything one piece needs, top down in
@@ -97,6 +95,8 @@ export function ProductEditor({
   onChange: (patch: Partial<ContentProduct>) => void;
   onRemove: () => void;
 }) {
+  // Art / home pieces are measured by dimensions instead of wearable sizes.
+  const usesDim = Boolean(categoryMeta(product.category).dimensions);
   return (
     <div className="flex flex-col gap-4">
       <ImageManager
@@ -133,7 +133,7 @@ export function ProductEditor({
             className={`${inputCls} bg-neutral-900`}
           >
             {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c.key} value={c.key}>{c.key}</option>
             ))}
           </select>
         </Field>
@@ -182,18 +182,22 @@ export function ProductEditor({
         />
       </Field>
 
-      <Field label="Sizes (one per line)" hint="Leave blank for the standard set for this type. Set just one line for a single size.">
-        <div className="flex flex-col gap-2">
-          <textarea
-            value={(product.sizes ?? []).join("\n")}
-            onChange={(e) => onChange({ sizes: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
-            rows={3}
-            placeholder={"XS\nS\nM\nL\nXL"}
-            className={inputCls}
-          />
-          <SizeStock product={product} onChange={onChange} />
-        </div>
-      </Field>
+      {usesDim ? (
+        <DimensionsEditor product={product} onChange={onChange} />
+      ) : (
+        <Field label="Sizes (one per line)" hint="Leave blank to use this category's default sizes (set in Site → Size Tables). Set just one line for a single size.">
+          <div className="flex flex-col gap-2">
+            <textarea
+              value={(product.sizes ?? []).join("\n")}
+              onChange={(e) => onChange({ sizes: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+              rows={3}
+              placeholder={defaultSizes(product.category).join("\n") || "XS\nS\nM\nL\nXL"}
+              className={inputCls}
+            />
+            <SizeStock product={product} onChange={onChange} />
+          </div>
+        </Field>
+      )}
 
       <ColorPalette product={product} onChange={onChange} />
 
@@ -454,6 +458,42 @@ function SpecOverrides({
         </div>
       )}
     </div>
+  );
+}
+
+/* ---------------- dimensions (art / home pieces) ---------------- */
+
+function DimensionsEditor({
+  product,
+  onChange,
+}: {
+  product: ContentProduct;
+  onChange: (patch: Partial<ContentProduct>) => void;
+}) {
+  const d = product.dimensions ?? {};
+  const set = (key: "height" | "width" | "depth", v: string) => {
+    const next = { ...d };
+    const val = v.trim();
+    if (val) next[key] = val;
+    else delete next[key];
+    onChange({ dimensions: Object.keys(next).length ? next : undefined });
+  };
+  const fields: { key: "height" | "width" | "depth"; label: string; ph: string }[] = [
+    { key: "height", label: "Height", ph: "40 cm" },
+    { key: "width", label: "Width", ph: "30 cm" },
+    { key: "depth", label: "Depth (optional)", ph: "12 cm" },
+  ];
+  return (
+    <Field label="Dimensions" hint="Shown on the product page instead of sizes for this category. Use any unit (e.g. “40 cm”).">
+      <div className="grid gap-3 sm:grid-cols-3">
+        {fields.map((f) => (
+          <div key={f.key}>
+            <label className="mb-1 block text-[11px] uppercase tracking-wider text-neutral-500">{f.label}</label>
+            <input value={d[f.key] ?? ""} placeholder={f.ph} onChange={(e) => set(f.key, e.target.value)} className={inputCls} />
+          </div>
+        ))}
+      </div>
+    </Field>
   );
 }
 

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { TransitionLink } from "@/components/transition/page-transition";
-import { specOf, defaultSizes, priceInfo } from "@/lib/products";
+import { specOf, priceInfo } from "@/lib/products";
+import { sizeOptionsFor, sizeGuideFor, categoryUsesDimensions } from "@/lib/sizing";
 import { readContent } from "@/lib/content/store";
 import { getLang } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/dictionary";
@@ -118,30 +119,42 @@ export default async function ProductPage({ params }: PageProps) {
 
   const { price: salePrice, original: listPrice, percent: discountPct } = priceInfo(product);
   const swatches = (product.colors ?? []).filter((c) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c)).slice(0, 5);
-  // Buyable sizes: drop single "One size" / "One of one" placeholders so we only
-  // show a picker when there's a real choice to make.
-  const buyableSizes = (product.sizes?.length ? product.sizes : defaultSizes(product.category)).filter(
-    (s) => !/^one\b/i.test(s),
-  );
 
-  // Size guide: this piece's own measurements when set, else the site-wide
-  // guide. Studio-entered free text, so it isn't localised.
+  // Sizes come from the category cascade (product → admin category config →
+  // built-in default). Art / home pieces are measured by dimensions instead.
+  const usesDimensions = categoryUsesDimensions(content, raw.category);
+  const sizeOptions = sizeOptionsFor(content, raw);
+  // Buyable sizes: drop single "One size" / "One of one" placeholders (and all
+  // sizes for dimension pieces) so a picker only shows for a real choice.
+  const buyableSizes = usesDimensions ? [] : sizeOptions.filter((s) => !/^one\b/i.test(s));
+
+  // Size table: this piece's own measurements → its category's table → the
+  // site-wide fallback. Hidden for dimension pieces. Studio free text, not localised.
   const rowHas = (g?: { rows?: { size?: string; measure?: string }[] }) =>
     (g?.rows ?? []).some((r) => (r.size ?? "").trim() || (r.measure ?? "").trim());
-  const sizeGuide = rowHas(raw.sizeGuide) ? raw.sizeGuide : content.sizeGuide;
-  const hasSizeGuide = rowHas(sizeGuide);
+  const sizeGuide = sizeGuideFor(content, raw);
+  const hasSizeGuide = !usesDimensions && rowHas(sizeGuide);
 
   // Available sizes shown below the piece (sold-out ones dropped), localised.
   const sizeToken = (s: string) =>
     s === "One size" ? t("shop.sizeOneSize") : s === "One of one" ? t("shop.sizeOneOfOne") : s;
-  const allSizes = raw.sizes?.length ? raw.sizes : defaultSizes(raw.category);
-  const availableSizes = allSizes.filter((s) => !(raw.soldOutSizes ?? []).includes(s));
+  const availableSizes = sizeOptions.filter((s) => !(raw.soldOutSizes ?? []).includes(s));
   const availableSizesLabel =
     availableSizes.length > 2 && availableSizes.every((s) => /^(US|EU) \d+$/.test(s))
       ? `${availableSizes[0]} – ${availableSizes[availableSizes.length - 1]}`
       : availableSizes.length
         ? availableSizes.map(sizeToken).join(", ")
         : t("shop.soldOut");
+
+  // Dimensions line for art / home pieces (only the fields that are filled in).
+  const dims = raw.dimensions;
+  const dimensionsLabel = [
+    dims?.height && `${t("shop.dimHeight")}: ${dims.height}`,
+    dims?.width && `${t("shop.dimWidth")}: ${dims.width}`,
+    dims?.depth && `${t("shop.dimDepth")}: ${dims.depth}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   // The description button appears only when the piece has description copy.
   const hasDescription = (product.description ?? "").trim().length > 0;
@@ -225,10 +238,18 @@ export default async function ProductPage({ params }: PageProps) {
             />
           </div>
 
-          {/* available sizes (left) + sold-out stamp (right) */}
+          {/* available sizes — or dimensions for art pieces (left) + sold-out stamp (right) */}
           <div className="shrink-0 border-t border-ink/60">
             <div className="flex items-center justify-between gap-3 py-2">
-              <Field label={t("shop.fieldSizes")} value={availableSizesLabel} />
+              {usesDimensions ? (
+                dimensionsLabel ? (
+                  <Field label={t("shop.dimensions")} value={dimensionsLabel} />
+                ) : (
+                  <span />
+                )
+              ) : (
+                <Field label={t("shop.fieldSizes")} value={availableSizesLabel} />
+              )}
               {product.soldOut && (
                 <span className="inline-block shrink-0 -rotate-[4deg] rounded border-2 border-red-600/80 bg-paper px-3 py-1 font-archivo text-[13px] font-extrabold uppercase tracking-[0.16em] text-red-600 shadow-[2px_2px_0_rgba(40,34,24,0.2)]">
                   {t("shop.soldOut")}

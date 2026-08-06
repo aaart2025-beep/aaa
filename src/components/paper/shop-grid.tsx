@@ -7,7 +7,7 @@ import { InkedText } from "@/components/paper/inked";
 import { SketchDoodle } from "@/components/paper/sketch-doodle";
 import { useScrollSwing } from "@/components/motion/use-scroll-swing";
 import { useT } from "@/lib/i18n/context";
-import type { Product, ProductCategory } from "@/lib/products";
+import { CATEGORIES, categoryMeta, type Product, type ProductCategory } from "@/lib/products";
 
 /* The pinboard — every piece as a small square photo-note taped to the page,
  * all on the same warm-white paper so the grid reads clean and consistent.
@@ -17,13 +17,7 @@ import type { Product, ProductCategory } from "@/lib/products";
 /** One shared note colour for every piece — a warm white that fits the paper. */
 const NOTE_TONE = "#faf7f1";
 
-const CATEGORY_ORDER: (ProductCategory | "All")[] = [
-  "All",
-  "Clothing",
-  "Headwear",
-  "Footwear",
-  "Art Object",
-];
+const CATEGORY_ORDER: (ProductCategory | "All")[] = ["All", ...CATEGORIES.map((c) => c.key)];
 
 type SortKey = "featured" | "price-asc" | "price-desc" | "name";
 const SORTS: { key: SortKey; labelKey: string }[] = [
@@ -33,14 +27,9 @@ const SORTS: { key: SortKey; labelKey: string }[] = [
   { key: "name", labelKey: "shop.sortAZ" },
 ];
 
-/** Translated label for a filter category (English enum stays the filter key). */
-const CATEGORY_KEY: Record<ProductCategory | "All", string> = {
-  All: "shop.catAll",
-  Clothing: "shop.catClothing",
-  Headwear: "shop.catHeadwear",
-  Footwear: "shop.catFootwear",
-  "Art Object": "shop.catArtObject",
-};
+/** Translated label key for a filter category (English enum stays the filter key). */
+const categoryLabelKey = (c: ProductCategory | "All"): string =>
+  c === "All" ? "shop.catAll" : categoryMeta(c).labelKey;
 
 function sortProducts(items: Product[], sort: SortKey): Product[] {
   const arr = [...items];
@@ -138,7 +127,7 @@ export function ShopGrid({ products: allProducts }: { products: Product[] }) {
             onClick={() => setFilter(c)}
             className={`${chipCls}${c === "Sale" ? " text-red-700" : ""}`}
           >
-            {c === "Sale" ? t("shop.catSale") : t(CATEGORY_KEY[c])}
+            {c === "Sale" ? t("shop.catSale") : t(categoryLabelKey(c))}
           </button>
         ))}
         <span aria-hidden className="mx-1.5 h-4 w-px shrink-0 bg-ink/30" />

@@ -22,6 +22,10 @@ function normalize(stored: Partial<SiteContent> | null): SiteContent {
       stored.sizeGuide && Array.isArray(stored.sizeGuide.rows)
         ? { intro: stored.sizeGuide.intro, rows: stored.sizeGuide.rows }
         : base.sizeGuide,
+    categorySizes:
+      stored.categorySizes && typeof stored.categorySizes === "object"
+        ? stored.categorySizes
+        : (base.categorySizes ?? {}),
     coupons: Array.isArray(stored.coupons) ? stored.coupons : base.coupons,
     shipping:
       stored.shipping && Array.isArray(stored.shipping.options) ? stored.shipping : base.shipping,

@@ -3,7 +3,57 @@
  * confirmed from its tag). Edit freely — this file is the single source of truth.
  * Image paths live in /public/products. */
 
-export type ProductCategory = "Headwear" | "Footwear" | "Clothing" | "Art Object";
+export type ProductCategory =
+  // Existing categories — kept so older products keep working.
+  | "Headwear"
+  | "Footwear"
+  | "Clothing"
+  | "Art Object"
+  // Newer, more specific categories.
+  | "Hoodies"
+  | "Shirts"
+  | "Tops"
+  | "Pants"
+  | "Sportswear";
+
+/** Standard clothing size run, shared by the garment categories. */
+const CLOTHING_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
+/** EU shoe sizes 36–47. */
+const EU_SHOE_SIZES = Array.from({ length: 12 }, (_, i) => `EU ${36 + i}`);
+
+/** One category's built-in defaults. Adding a new category = one entry here
+ * (plus its i18n label); everything else (dropdowns, filters, size resolution)
+ * derives from this list, so categories stay modular. */
+export interface CategoryMeta {
+  key: ProductCategory;
+  /** i18n key for the customer-facing label. */
+  labelKey: string;
+  /** Built-in size options for the picker (empty for dimension-based pieces). */
+  sizes: string[];
+  /** This category is measured by dimensions (H/W/D), not wearable sizes. */
+  dimensions?: boolean;
+}
+
+/** Single source of truth for categories, in display order. */
+export const CATEGORIES: CategoryMeta[] = [
+  { key: "Footwear", labelKey: "shop.catFootwear", sizes: EU_SHOE_SIZES },
+  { key: "Hoodies", labelKey: "shop.catHoodies", sizes: CLOTHING_SIZES },
+  { key: "Shirts", labelKey: "shop.catShirts", sizes: CLOTHING_SIZES },
+  { key: "Tops", labelKey: "shop.catTops", sizes: CLOTHING_SIZES },
+  { key: "Pants", labelKey: "shop.catPants", sizes: ["28", "30", "32", "34", "36", "38"] },
+  { key: "Sportswear", labelKey: "shop.catSportswear", sizes: CLOTHING_SIZES },
+  { key: "Clothing", labelKey: "shop.catClothing", sizes: CLOTHING_SIZES },
+  { key: "Headwear", labelKey: "shop.catHeadwear", sizes: ["One size"] },
+  { key: "Art Object", labelKey: "shop.catArtObject", sizes: [], dimensions: true },
+];
+
+const CATEGORY_BY_KEY = new Map<string, CategoryMeta>(CATEGORIES.map((c) => [c.key, c]));
+
+/** Metadata for a category; falls back to Clothing for any unknown value so
+ * legacy/edge data never crashes. */
+export function categoryMeta(category: string): CategoryMeta {
+  return CATEGORY_BY_KEY.get(category) ?? CATEGORY_BY_KEY.get("Clothing")!;
+}
 
 /** The five canonical studio views of a piece. Any of them may be missing —
  * the UI renders an honest "to be photographed" slot until the photo exists. */
@@ -76,6 +126,9 @@ export interface Product {
    * When a shopper selects a colour that has photos here, the gallery swaps to
    * them; colours without their own photos fall back to the main `images`. */
   colorImages?: Record<string, string[]>;
+  /** Physical size for pieces measured by dimensions (art objects / home).
+   * Free text so the studio can use any unit ("40 cm", "16 in"). */
+  dimensions?: { height?: string; width?: string; depth?: string };
 }
 
 /** The display zoom for one image of a product (1 = natural size). */
@@ -102,18 +155,9 @@ export function priceInfo(p: Pick<Product, "price" | "discount">): PriceInfo {
   return { price: Math.round(p.price * (1 - pct / 100)), original: p.price, percent: pct };
 }
 
-/** Default size options when a product doesn't define its own. */
+/** Built-in default size options for a category (before any admin override). */
 export function defaultSizes(category: ProductCategory): string[] {
-  switch (category) {
-    case "Footwear":
-      return ["EU 39", "EU 40", "EU 41", "EU 42", "EU 43", "EU 44", "EU 45", "EU 46"];
-    case "Headwear":
-      return ["One size"];
-    case "Art Object":
-      return ["One of one"];
-    default:
-      return ["XS", "S", "M", "L", "XL"];
-  }
+  return categoryMeta(category).sizes;
 }
 
 export const products: Product[] = [
@@ -716,16 +760,22 @@ function findDetail(details: string[], pattern: RegExp): string | undefined {
 
 /** Resolve the spec-sheet rows, preferring explicit fields and falling back
  * to what the catalog copy already says (details, category, name). */
+const GARMENT_BY_CATEGORY: Partial<Record<ProductCategory, string>> = {
+  Headwear: "Cap",
+  Footwear: "Sneaker",
+  "Art Object": "Art Object",
+  Hoodies: "Hoodie",
+  Shirts: "Shirt",
+  Tops: "Top",
+  Pants: "Pants",
+  Sportswear: "Activewear",
+};
+
 export function specOf(p: Product): ProductSpec {
   const garment =
     p.garment ??
-    (p.category === "Headwear"
-      ? "Cap"
-      : p.category === "Footwear"
-        ? "Sneaker"
-        : p.category === "Art Object"
-          ? "Art Object"
-          : (GARMENT_BY_NAME.find(([re]) => re.test(p.name))?.[1] ?? "Garment"));
+    GARMENT_BY_CATEGORY[p.category] ??
+    (GARMENT_BY_NAME.find(([re]) => re.test(p.name))?.[1] ?? "Garment");
 
   const fitDetail = findDetail(p.details, /fit\b/i);
   const fit =
