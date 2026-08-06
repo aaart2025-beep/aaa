@@ -214,13 +214,8 @@ export default async function ProductPage({ params }: PageProps) {
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-2 border-t border-dashed border-ink/30">
-              <div className="border-r border-dashed border-ink/30 py-2 pr-4">
-                <Field label={t("shop.fieldFit")} value={trFit(spec.fit)} />
-              </div>
-              <div className="py-2 pl-4">
-                <Field label={t("shop.fieldFabricDetail")} value={t("shop.handMade")} />
-              </div>
+            <div className="border-t border-dashed border-ink/30 py-2">
+              <Field label={t("shop.fieldFit")} value={trFit(spec.fit)} />
             </div>
           </div>
 
