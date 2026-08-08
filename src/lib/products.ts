@@ -138,15 +138,6 @@ export interface Product {
   colorSoldOut?: Record<string, boolean>;
 }
 
-/** The image the shop card / listing should show for a product: the first
- * colour's photo when it has its own set, else the main cover. Keeps the card
- * and the product page (which opens at the first colour) in sync. */
-export function coverImage(p: Pick<Product, "images" | "colors" | "colorImages">): string | undefined {
-  const first = p.colors?.[0];
-  const own = first ? p.colorImages?.[first] : undefined;
-  return (own && own[0]) || p.images[0];
-}
-
 /** The display zoom for one image of a product (1 = natural size). */
 export function scaleFor(p: Pick<Product, "imageScale">, src?: string): number {
   if (!src) return 1;

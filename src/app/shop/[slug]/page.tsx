@@ -243,9 +243,14 @@ export default async function ProductPage({ params }: PageProps) {
                   <span />
                 )
               ) : (
-                <ColorSizesLine label={t("shop.fieldSizes")} baseLabel={availableSizesLabel} colorSizes={raw.colorSizes} />
+                <ColorSizesLine label={t("shop.fieldSizes")} baseLabel={availableSizesLabel} colorSizes={raw.colorSizes} primary={raw.colors?.[0]} />
               )}
-              <ColorSoldOutStamp productSoldOut={product.soldOut} colorSoldOut={raw.colorSoldOut} label={t("shop.soldOut")} />
+              <ColorSoldOutStamp
+                productSoldOut={product.soldOut}
+                colorSoldOut={raw.colorSoldOut}
+                primary={raw.colors?.[0]}
+                label={t("shop.soldOut")}
+              />
             </div>
           </div>
 

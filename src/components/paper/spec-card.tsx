@@ -4,7 +4,7 @@ import Image from "next/image";
 import { TransitionLink } from "@/components/transition/page-transition";
 import { Tape } from "@/components/paper/annotations";
 import { cn } from "@/lib/utils";
-import { priceInfo, scaleFor, coverImage, type Product } from "@/lib/products";
+import { priceInfo, scaleFor, type Product } from "@/lib/products";
 import { PaintPrice } from "@/components/paper/paint-price";
 import { useT } from "@/lib/i18n/context";
 
@@ -29,7 +29,9 @@ export function SpecCard({
   const t = useT();
   const paper = tone ?? "#f4efe2";
   const { price, original, percent } = priceInfo(product);
-  const cover = coverImage(product) ?? product.images[0];
+  // The main photo is the cover — it's the primary (first) colour's image, shown
+  // here and opened first on the product page, so the two always match.
+  const cover = product.images[0];
   const coverScale = scaleFor(product, cover);
   return (
     <TransitionLink

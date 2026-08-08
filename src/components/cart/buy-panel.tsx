@@ -69,25 +69,31 @@ export function BuyPanel({
   const colour = ctx ? ctx.selected : localColour;
   const setColour = ctx ? ctx.setSelected : setLocalColour;
 
-  // Sizes shown depend on the colour: a colour with its own set shows only those
-  // (all in stock); otherwise the general sizes with any sold-out ones struck out.
-  const perColour = colour ? colorSizes?.[colour] : undefined;
+  // The first colour is the primary/main piece — it uses the product's own
+  // sizes, stock and photos. Any added colour is an independent variant with its
+  // own sizes and sold-out state, so one colour's stock never affects another.
+  const isPrimary = !colour || colour === colors[0];
+  const perColour = !isPrimary && colour ? colorSizes?.[colour] : undefined;
   const usingPerColour = Boolean(perColour && perColour.length);
   const activeSizes = React.useMemo(
     () => (usingPerColour ? perColour! : sizes).filter((s) => s && !/^one\b/i.test(s)),
     [usingPerColour, perColour, sizes],
   );
+  // Struck-out sizes apply to the primary (its soldOutSizes); an added colour's
+  // list is exactly what's in stock, so nothing is struck.
   const gone = React.useMemo(
-    () => (usingPerColour ? new Set<string>() : new Set(unavailableSizes ?? [])),
-    [usingPerColour, unavailableSizes],
+    () => (isPrimary ? new Set(unavailableSizes ?? []) : new Set<string>()),
+    [isPrimary, unavailableSizes],
   );
   const available = activeSizes.filter((s) => !gone.has(s));
   // A size must always be chosen when the piece offers any size (even one), so
   // the sizes render as cube buttons and a pick is required before ordering.
   const needSize = available.length >= 1;
   const allGone = activeSizes.length > 0 && available.length === 0;
-  const colourSoldOut = colour ? Boolean(colorSoldOut?.[colour]) : false;
-  const disabled = soldOut || colourSoldOut || allGone;
+  // Sold-out is per colour: the primary uses the product flag, an added colour
+  // its own flag — so a sold-out colour never disables the others.
+  const variantSoldOut = isPrimary ? soldOut : Boolean(colour && colorSoldOut?.[colour]);
+  const disabled = variantSoldOut || allGone;
   const [size, setSize] = React.useState<string | null>(null);
   const [hint, setHint] = React.useState(false);
 
@@ -106,7 +112,7 @@ export function BuyPanel({
       return;
     }
     const variant = [size, colour].filter(Boolean).join(" · ") || undefined;
-    const thumb = (colour && colorImages?.[colour]?.[0]) || image;
+    const thumb = (!isPrimary && colour && colorImages?.[colour]?.[0]) || image;
     add({ slug, name, price, image: thumb, variant });
   };
 

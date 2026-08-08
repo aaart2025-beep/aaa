@@ -102,7 +102,7 @@ export function ProductEditor({
       <ImageManager
         images={product.images}
         onChange={(images) => onChange({ images })}
-        note="First photo is the cover. Reorder with the arrows; drag the zoom slider under a photo to size the piece (double-click to reset)."
+        note="Main photos (the primary colour). The FIRST photo is the cover — shown on the shop card and opened first on the product page. Reorder with the arrows; drag the zoom slider under a photo to size it (double-click to reset)."
         scales={product.imageScale}
         onScale={(src, scale) => {
           const next = { ...(product.imageScale ?? {}) };
@@ -562,6 +562,12 @@ function ColoursSection({
     else n[color] = list;
     onChange({ colorSizes: Object.keys(n).length ? n : undefined });
   };
+  const onScaleImage = (src: string, scale: number) => {
+    const next = { ...(product.imageScale ?? {}) };
+    if (scale === 1) delete next[src];
+    else next[src] = scale;
+    onChange({ imageScale: Object.keys(next).length ? next : undefined });
+  };
 
   return (
     <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
@@ -635,49 +641,60 @@ function ColoursSection({
                 </button>
               </summary>
               <div className="flex flex-col gap-3 border-t border-white/10 p-3">
-                <label className="flex cursor-pointer items-center gap-2 text-[13px] text-neutral-300">
-                  <input
-                    type="checkbox"
-                    checked={!!soldOutMap[color]}
-                    onChange={(e) => setSoldOutFor(color, e.target.checked)}
-                    className="h-4 w-4 accent-red-500"
-                  />
-                  Sold out in this colour
-                </label>
+                {i === 0 ? (
+                  <p className="text-[12px] leading-relaxed text-neutral-400">
+                    This is the <span className="text-neutral-200">primary</span> colour — its photos, sizes and stock are the
+                    product&apos;s main ones, edited in <span className="text-neutral-200">Photos</span>,{" "}
+                    <span className="text-neutral-200">Sizes</span> and <span className="text-neutral-200">Sold out</span> above.
+                    It&apos;s shown on the shop card and opens first.
+                  </p>
+                ) : (
+                  <>
+                    <label className="flex cursor-pointer items-center gap-2 text-[13px] text-neutral-300">
+                      <input
+                        type="checkbox"
+                        checked={!!soldOutMap[color]}
+                        onChange={(e) => setSoldOutFor(color, e.target.checked)}
+                        className="h-4 w-4 accent-red-500"
+                      />
+                      Sold out in this colour
+                    </label>
 
-                <div>
-                  <div className="mb-1 text-[11px] uppercase tracking-wider text-neutral-500">
-                    Photos {i === 0 ? "— defaults to the main photos above" : ""}
-                  </div>
-                  <ImageManager
-                    images={images[color] ?? []}
-                    onChange={(imgs) => setImagesFor(color, imgs)}
-                    note="Shown when this colour is selected. Leave empty to use the main photos."
-                  />
-                </div>
-
-                {!usesDim && universe.length > 0 && (
-                  <div>
-                    <div className="mb-1 text-[11px] uppercase tracking-wider text-neutral-500">Available sizes — tap to switch off</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {universe.map((s) => {
-                        const on = availFor(color).has(s);
-                        return (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => toggleSize(color, s)}
-                            title={on ? "Available — tap to remove" : "Not available — tap to add"}
-                            className={`rounded-md border px-2.5 py-1 text-[12px] transition ${
-                              on ? "border-amber-400/60 bg-amber-400/10 text-amber-200" : "border-white/15 text-neutral-500 line-through hover:border-white/40"
-                            }`}
-                          >
-                            {s}
-                          </button>
-                        );
-                      })}
+                    <div>
+                      <div className="mb-1 text-[11px] uppercase tracking-wider text-neutral-500">Photos for this colour</div>
+                      <ImageManager
+                        images={images[color] ?? []}
+                        onChange={(imgs) => setImagesFor(color, imgs)}
+                        scales={product.imageScale}
+                        onScale={onScaleImage}
+                        note="Shown when this colour is selected. Reorder with the arrows; drag the zoom slider under a photo to size it. Leave empty to use the main photos."
+                      />
                     </div>
-                  </div>
+
+                    {!usesDim && universe.length > 0 && (
+                      <div>
+                        <div className="mb-1 text-[11px] uppercase tracking-wider text-neutral-500">Available sizes — tap to switch off</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {universe.map((s) => {
+                            const on = availFor(color).has(s);
+                            return (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => toggleSize(color, s)}
+                                title={on ? "Available — tap to remove" : "Not available — tap to add"}
+                                className={`rounded-md border px-2.5 py-1 text-[12px] transition ${
+                                  on ? "border-amber-400/60 bg-amber-400/10 text-amber-200" : "border-white/15 text-neutral-500 line-through hover:border-white/40"
+                                }`}
+                              >
+                                {s}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </details>

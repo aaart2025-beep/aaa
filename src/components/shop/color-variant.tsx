@@ -45,7 +45,10 @@ export function ColorGallery({
 }) {
   const ctx = useColorVariant();
   const selected = ctx?.selected ?? null;
-  const own = selected ? colorImages?.[selected] : undefined;
+  // The first colour is the primary piece — it always shows the main photos.
+  // Only an added colour swaps in its own photo set.
+  const primary = product.colors?.[0] ?? null;
+  const own = selected && selected !== primary ? colorImages?.[selected] : undefined;
   const views = (own && own.length ? resolveViews({ ...product, images: own, views: undefined }) : resolveViews(product))
     // The fabric close-up tab is not shown on the storefront.
     .filter((v) => v.key !== "fabric");
@@ -58,15 +61,19 @@ export function ColorGallery({
 export function ColorSoldOutStamp({
   productSoldOut,
   colorSoldOut,
+  primary,
   label,
 }: {
   productSoldOut?: boolean;
   colorSoldOut?: Record<string, boolean>;
+  /** the first colour value; the product flag applies only to it */
+  primary?: string;
   label: string;
 }) {
   const ctx = useColorVariant();
   const sel = ctx?.selected ?? null;
-  const soldOut = Boolean(productSoldOut) || (sel ? Boolean(colorSoldOut?.[sel]) : false);
+  const isPrimary = !sel || sel === primary;
+  const soldOut = isPrimary ? Boolean(productSoldOut) : Boolean(colorSoldOut?.[sel]);
   if (!soldOut) return null;
   return (
     <span className="inline-block shrink-0 -rotate-[4deg] rounded border-2 border-red-600/80 bg-paper px-3 py-1 font-archivo text-[13px] font-extrabold uppercase tracking-[0.16em] text-red-600 shadow-[2px_2px_0_rgba(40,34,24,0.2)]">
@@ -81,14 +88,17 @@ export function ColorSizesLine({
   label,
   baseLabel,
   colorSizes,
+  primary,
 }: {
   label: string;
   baseLabel: string;
   colorSizes?: Record<string, string[]>;
+  /** the first colour value; it uses the base sizes, not a per-colour set */
+  primary?: string;
 }) {
   const ctx = useColorVariant();
   const sel = ctx?.selected ?? null;
-  const per = sel ? colorSizes?.[sel] : undefined;
+  const per = sel && sel !== primary ? colorSizes?.[sel] : undefined;
   const value = per && per.length ? per.join(", ") : baseLabel;
   return (
     <p className="font-archivo text-[clamp(12px,1.4vw,15px)] leading-tight text-ink">
