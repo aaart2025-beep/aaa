@@ -133,6 +133,18 @@ export interface Product {
    * colour has an entry, the product page shows only those sizes for it; colours
    * without an entry fall back to the product's general sizes. */
   colorSizes?: Record<string, string[]>;
+  /** Per-colour sold-out flag, keyed by the colour value. A colour marked here
+   * shows the sold-out state (with "Order now") when it's selected. */
+  colorSoldOut?: Record<string, boolean>;
+}
+
+/** The image the shop card / listing should show for a product: the first
+ * colour's photo when it has its own set, else the main cover. Keeps the card
+ * and the product page (which opens at the first colour) in sync. */
+export function coverImage(p: Pick<Product, "images" | "colors" | "colorImages">): string | undefined {
+  const first = p.colors?.[0];
+  const own = first ? p.colorImages?.[first] : undefined;
+  return (own && own[0]) || p.images[0];
 }
 
 /** The display zoom for one image of a product (1 = natural size). */

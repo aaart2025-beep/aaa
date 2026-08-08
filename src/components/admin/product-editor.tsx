@@ -112,8 +112,6 @@ export function ProductEditor({
         }}
       />
 
-      <FiveViews product={product} onChange={onChange} />
-
       <Field label="Product name">
         <input
           value={product.name}
@@ -199,15 +197,9 @@ export function ProductEditor({
         </Field>
       )}
 
-      <ColorPalette product={product} onChange={onChange} />
+      <ColoursSection product={product} onChange={onChange} />
 
-      <ColorImagesEditor product={product} onChange={onChange} />
-
-      <ColorSizesEditor product={product} onChange={onChange} />
-
-      <SpecOverrides product={product} onChange={onChange} />
-
-      <SizeGuideOverride product={product} onChange={onChange} />
+      <AdvancedSection product={product} onChange={onChange} />
 
       <button
         onClick={() => {
@@ -463,92 +455,6 @@ function SpecOverrides({
   );
 }
 
-/* ---------------- available sizes per colour ---------------- */
-
-function ColorSizesEditor({
-  product,
-  onChange,
-}: {
-  product: ContentProduct;
-  onChange: (patch: Partial<ContentProduct>) => void;
-}) {
-  const colors = product.colors ?? [];
-  const universe = (product.sizes?.length ? product.sizes : defaultSizes(product.category)).filter((s) => !/^one\b/i.test(s));
-  const map = product.colorSizes ?? {};
-  const [open, setOpen] = React.useState(Object.keys(map).length > 0);
-  // Only relevant when the piece has colours and real sizes.
-  if (colors.length === 0 || universe.length === 0) return null;
-
-  // Absent entry = every size available for that colour.
-  const availFor = (color: string): Set<string> => {
-    const entry = map[color];
-    return entry && entry.length ? new Set(entry) : new Set(universe);
-  };
-  const toggle = (color: string, s: string) => {
-    const set = availFor(color);
-    if (set.has(s)) set.delete(s);
-    else set.add(s);
-    const list = universe.filter((x) => set.has(x));
-    const next = { ...map };
-    // All (or none) selected → drop the entry so it uses the general sizes.
-    if (list.length === 0 || list.length === universe.length) delete next[color];
-    else next[color] = list;
-    onChange({ colorSizes: Object.keys(next).length ? next : undefined });
-  };
-
-  return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.015]">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between px-3 py-2 text-left text-[12px] text-neutral-400 hover:text-white"
-      >
-        <span>
-          Sizes per colour{" "}
-          <span className="text-neutral-600">— tap to switch a size off for a colour (e.g. black only in L). All on = every size.</span>
-        </span>
-        <span>{open ? "▾" : "▸"}</span>
-      </button>
-      {open && (
-        <div className="flex flex-col gap-4 border-t border-white/10 p-3">
-          {colors.map((color) => {
-            const avail = availFor(color);
-            return (
-              <div key={color} className="rounded-lg border border-white/10 p-3">
-                <div className="mb-2 flex items-center gap-2">
-                  {isHex(color) ? (
-                    <span className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: color }} />
-                  ) : (
-                    <span className="h-5 w-5 rounded-full border border-dashed border-white/25" />
-                  )}
-                  <span className="text-[13px] font-medium text-neutral-200">{color}</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {universe.map((s) => {
-                    const on = avail.has(s);
-                    return (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => toggle(color, s)}
-                        title={on ? "Available — tap to remove" : "Not available — tap to add"}
-                        className={`rounded-md border px-2.5 py-1 text-[12px] transition ${
-                          on ? "border-amber-400/60 bg-amber-400/10 text-amber-200" : "border-white/15 text-neutral-500 line-through hover:border-white/40"
-                        }`}
-                      >
-                        {s}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ---------------- dimensions (art / home pieces) ---------------- */
 
 function DimensionsEditor({
@@ -585,11 +491,9 @@ function DimensionsEditor({
   );
 }
 
-/* ---------------- colour palette (a shopper's purchase choice) ---------------- */
+/* ---------------- colours (each colour = its own photos, sizes & stock) ---------------- */
 
-const PRESET_COLORS = ["#000000", "#ffffff", "#8b5cf6", "#eb5757", "#2d9cdb", "#f2c94c", "#27ae60", "#8a5a2b"];
-
-function ColorPalette({
+function ColoursSection({
   product,
   onChange,
 }: {
@@ -597,140 +501,203 @@ function ColorPalette({
   onChange: (patch: Partial<ContentProduct>) => void;
 }) {
   const colors = product.colors ?? [];
+  const images = product.colorImages ?? {};
+  const sizesMap = product.colorSizes ?? {};
+  const soldOutMap = product.colorSoldOut ?? {};
+  const usesDim = Boolean(categoryMeta(product.category).dimensions);
+  const universe = (product.sizes?.length ? product.sizes : defaultSizes(product.category)).filter((s) => !/^one\b/i.test(s));
+
   const [hex, setHex] = React.useState("#000000");
   const [name, setName] = React.useState("");
 
   const setColors = (next: string[]) => onChange({ colors: next.length ? next : undefined });
-  const add = (c: string) => {
+  const addColor = (c: string) => {
     const v = c.trim();
-    if (!v) return;
-    if (colors.some((x) => x.toLowerCase() === v.toLowerCase())) return;
+    if (!v || colors.some((x) => x.toLowerCase() === v.toLowerCase())) return;
     setColors([...colors, v]);
   };
-  const removeAt = (i: number) => {
-    const removed = colors[i];
-    const nextColors = colors.filter((_, k) => k !== i);
+  const removeColor = (color: string) => {
+    const nextColors = colors.filter((c) => c !== color);
     const patch: Partial<ContentProduct> = { colors: nextColors.length ? nextColors : undefined };
-    // Drop that colour's photo set too, so it doesn't linger.
-    if (product.colorImages && removed in product.colorImages) {
-      const nextImgs = { ...product.colorImages };
-      delete nextImgs[removed];
-      patch.colorImages = Object.keys(nextImgs).length ? nextImgs : undefined;
+    if (images[color] !== undefined) {
+      const n = { ...images };
+      delete n[color];
+      patch.colorImages = Object.keys(n).length ? n : undefined;
+    }
+    if (sizesMap[color] !== undefined) {
+      const n = { ...sizesMap };
+      delete n[color];
+      patch.colorSizes = Object.keys(n).length ? n : undefined;
+    }
+    if (soldOutMap[color] !== undefined) {
+      const n = { ...soldOutMap };
+      delete n[color];
+      patch.colorSoldOut = Object.keys(n).length ? n : undefined;
     }
     onChange(patch);
   };
+  const setImagesFor = (color: string, imgs: string[]) => {
+    const n = { ...images };
+    if (imgs.length) n[color] = imgs;
+    else delete n[color];
+    onChange({ colorImages: Object.keys(n).length ? n : undefined });
+  };
+  const setSoldOutFor = (color: string, v: boolean) => {
+    const n = { ...soldOutMap };
+    if (v) n[color] = true;
+    else delete n[color];
+    onChange({ colorSoldOut: Object.keys(n).length ? n : undefined });
+  };
+  const availFor = (color: string): Set<string> => {
+    const entry = sizesMap[color];
+    return entry && entry.length ? new Set(entry) : new Set(universe);
+  };
+  const toggleSize = (color: string, s: string) => {
+    const set = availFor(color);
+    if (set.has(s)) set.delete(s);
+    else set.add(s);
+    const list = universe.filter((x) => set.has(x));
+    const n = { ...sizesMap };
+    if (list.length === 0 || list.length === universe.length) delete n[color];
+    else n[color] = list;
+    onChange({ colorSizes: Object.keys(n).length ? n : undefined });
+  };
 
   return (
-    <Field
-      label="Colours"
-      hint="The palette a shopper picks from on the product page. Add a swatch with the colour picker, or a named colour like “Ecru”. Names read best in the cart and order emails. Leave empty for no colour choice."
-    >
-      <div className="flex flex-col gap-3">
-        {colors.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {colors.map((c, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.03] py-1 pl-1.5 pr-2"
-              >
-                {isHex(c) ? (
-                  <span className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: c }} />
+    <div className="rounded-lg border border-white/10 bg-white/[0.02] p-3">
+      <div className="mb-1 text-[13px] font-medium text-neutral-200">Colours</div>
+      <p className="mb-3 text-[11px] text-neutral-500">
+        Each colour is its own version — its photos, available sizes and stock. The first colour is shown on the shop card and
+        opens first. Names (e.g. “Black”) read best in the cart. Leave empty for a single-colour piece.
+      </p>
+
+      {/* add a colour */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <input
+          type="color"
+          value={hex}
+          onChange={(e) => setHex(e.target.value)}
+          title="Pick a colour"
+          className="h-9 w-12 cursor-pointer rounded border border-white/15 bg-transparent p-0.5"
+        />
+        <button onClick={() => addColor(hex)} className="rounded-lg border border-white/15 px-3 py-1.5 text-[12px] text-neutral-200 transition hover:bg-white/5">
+          Add swatch
+        </button>
+        <span className="text-[11px] text-neutral-600">or</span>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              addColor(name);
+              setName("");
+            }
+          }}
+          placeholder="Named colour (e.g. Black)"
+          className={`${inputCls} max-w-[180px]`}
+        />
+        <button
+          onClick={() => {
+            addColor(name);
+            setName("");
+          }}
+          className="rounded-lg border border-white/15 px-3 py-1.5 text-[12px] text-neutral-200 transition hover:bg-white/5"
+        >
+          Add name
+        </button>
+      </div>
+
+      {colors.length === 0 ? (
+        <p className="text-[12px] text-neutral-500">No colours yet — this piece uses its main photos and sizes, with no colour picker.</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {colors.map((color, i) => (
+            <details key={color} open={i === 0} className="rounded-lg border border-white/10 bg-white/[0.015]">
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2">
+                {isHex(color) ? (
+                  <span className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: color }} />
                 ) : (
                   <span className="h-5 w-5 rounded-full border border-dashed border-white/25" />
                 )}
-                <span className="text-[12px] text-neutral-200">{c}</span>
+                <span className="text-[13px] font-medium text-neutral-200">{color}</span>
+                {i === 0 && <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-neutral-400">Shown first</span>}
+                {soldOutMap[color] && <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] text-red-300">Sold out</span>}
                 <button
-                  onClick={() => removeAt(i)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    removeColor(color);
+                  }}
                   title="Remove colour"
-                  className="text-[12px] leading-none text-red-300 transition hover:text-red-200"
+                  className="ml-auto text-[13px] leading-none text-red-300 transition hover:text-red-200"
                 >
                   ✕
                 </button>
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="text-[12px] text-neutral-500">No colours yet — this piece shows without a colour picker.</p>
-        )}
+              </summary>
+              <div className="flex flex-col gap-3 border-t border-white/10 p-3">
+                <label className="flex cursor-pointer items-center gap-2 text-[13px] text-neutral-300">
+                  <input
+                    type="checkbox"
+                    checked={!!soldOutMap[color]}
+                    onChange={(e) => setSoldOutFor(color, e.target.checked)}
+                    className="h-4 w-4 accent-red-500"
+                  />
+                  Sold out in this colour
+                </label>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="color"
-            value={hex}
-            onChange={(e) => setHex(e.target.value)}
-            title="Pick a colour"
-            className="h-9 w-12 cursor-pointer rounded border border-white/15 bg-transparent p-0.5"
-          />
-          <button
-            onClick={() => add(hex)}
-            className="rounded-lg border border-white/15 px-3 py-1.5 text-[12px] text-neutral-200 transition hover:bg-white/5"
-          >
-            Add swatch
-          </button>
-          <span className="text-[11px] text-neutral-600">or</span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                add(name);
-                setName("");
-              }
-            }}
-            placeholder="Named colour (e.g. Ecru)"
-            className={`${inputCls} max-w-[190px]`}
-          />
-          <button
-            onClick={() => {
-              add(name);
-              setName("");
-            }}
-            className="rounded-lg border border-white/15 px-3 py-1.5 text-[12px] text-neutral-200 transition hover:bg-white/5"
-          >
-            Add name
-          </button>
-        </div>
+                <div>
+                  <div className="mb-1 text-[11px] uppercase tracking-wider text-neutral-500">
+                    Photos {i === 0 ? "— defaults to the main photos above" : ""}
+                  </div>
+                  <ImageManager
+                    images={images[color] ?? []}
+                    onChange={(imgs) => setImagesFor(color, imgs)}
+                    note="Shown when this colour is selected. Leave empty to use the main photos."
+                  />
+                </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] text-neutral-600">Quick add:</span>
-          {PRESET_COLORS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => add(p)}
-              title={p}
-              className="h-6 w-6 rounded-full border border-white/20 transition hover:scale-110"
-              style={{ backgroundColor: p }}
-            />
+                {!usesDim && universe.length > 0 && (
+                  <div>
+                    <div className="mb-1 text-[11px] uppercase tracking-wider text-neutral-500">Available sizes — tap to switch off</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {universe.map((s) => {
+                        const on = availFor(color).has(s);
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => toggleSize(color, s)}
+                            title={on ? "Available — tap to remove" : "Not available — tap to add"}
+                            className={`rounded-md border px-2.5 py-1 text-[12px] transition ${
+                              on ? "border-amber-400/60 bg-amber-400/10 text-amber-200" : "border-white/15 text-neutral-500 line-through hover:border-white/40"
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </details>
           ))}
         </div>
-      </div>
-    </Field>
+      )}
+    </div>
   );
 }
 
-/* ---------------- per-colour photo sets ---------------- */
+/* ---------------- advanced (tucked away to keep the editor tidy) ---------------- */
 
-function ColorImagesEditor({
+function AdvancedSection({
   product,
   onChange,
 }: {
   product: ContentProduct;
   onChange: (patch: Partial<ContentProduct>) => void;
 }) {
-  const colors = product.colors ?? [];
-  const map = product.colorImages ?? {};
   const [open, setOpen] = React.useState(false);
-  if (colors.length === 0) return null;
-
-  const setFor = (color: string, images: string[]) => {
-    const next = { ...map };
-    if (images.length) next[color] = images;
-    else delete next[color];
-    onChange({ colorImages: Object.keys(next).length ? next : undefined });
-  };
-
   return (
     <div className="rounded-lg border border-white/10 bg-white/[0.015]">
       <button
@@ -738,33 +705,15 @@ function ColorImagesEditor({
         className="flex w-full items-center justify-between px-3 py-2 text-left text-[12px] text-neutral-400 hover:text-white"
       >
         <span>
-          Photos per colour{" "}
-          <span className="text-neutral-600">— give each colour its own photos; the gallery swaps when a shopper picks it</span>
+          Advanced <span className="text-neutral-600">— extra photo angles, spec-sheet overrides, this piece&apos;s own size table</span>
         </span>
         <span>{open ? "▾" : "▸"}</span>
       </button>
       {open && (
         <div className="flex flex-col gap-4 border-t border-white/10 p-3">
-          {colors.map((color) => (
-            <div key={color} className="rounded-lg border border-white/10 p-3">
-              <div className="mb-2 flex items-center gap-2">
-                {isHex(color) ? (
-                  <span className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: color }} />
-                ) : (
-                  <span className="h-5 w-5 rounded-full border border-dashed border-white/25" />
-                )}
-                <span className="text-[13px] font-medium text-neutral-200">{color}</span>
-                {(map[color]?.length ?? 0) === 0 && (
-                  <span className="text-[11px] text-neutral-500">— uses the main photos</span>
-                )}
-              </div>
-              <ImageManager
-                images={map[color] ?? []}
-                onChange={(imgs) => setFor(color, imgs)}
-                note="Shown when this colour is selected. Leave empty to fall back to the main photos."
-              />
-            </div>
-          ))}
+          <FiveViews product={product} onChange={onChange} />
+          <SpecOverrides product={product} onChange={onChange} />
+          <SizeGuideOverride product={product} onChange={onChange} />
         </div>
       )}
     </div>

@@ -53,6 +53,28 @@ export function ColorGallery({
   return <SpecImage key={selected ?? "base"} name={product.name} views={views} />;
 }
 
+/* The sold-out stamp under the piece, reactive to the selected colour (the whole
+ * product, or just the chosen colour, can be sold out). */
+export function ColorSoldOutStamp({
+  productSoldOut,
+  colorSoldOut,
+  label,
+}: {
+  productSoldOut?: boolean;
+  colorSoldOut?: Record<string, boolean>;
+  label: string;
+}) {
+  const ctx = useColorVariant();
+  const sel = ctx?.selected ?? null;
+  const soldOut = Boolean(productSoldOut) || (sel ? Boolean(colorSoldOut?.[sel]) : false);
+  if (!soldOut) return null;
+  return (
+    <span className="inline-block shrink-0 -rotate-[4deg] rounded border-2 border-red-600/80 bg-paper px-3 py-1 font-archivo text-[13px] font-extrabold uppercase tracking-[0.16em] text-red-600 shadow-[2px_2px_0_rgba(40,34,24,0.2)]">
+      {label}
+    </span>
+  );
+}
+
 /* The available-sizes summary line under the piece, reactive to the selected
  * colour: shows only that colour's sizes when it has its own set. */
 export function ColorSizesLine({

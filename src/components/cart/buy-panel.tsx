@@ -24,6 +24,7 @@ export function BuyPanel({
   colors = [],
   colorImages,
   colorSizes,
+  colorSoldOut,
   soldOut = false,
   priceSlot,
   careSlot,
@@ -45,7 +46,9 @@ export function BuyPanel({
   colorImages?: Record<string, string[]>;
   /** Available sizes per colour — when set, only these show for that colour. */
   colorSizes?: Record<string, string[]>;
-  /** Out of stock — the buy button is replaced by a "sold out" state. */
+  /** Per-colour sold-out — selecting such a colour shows the sold-out state. */
+  colorSoldOut?: Record<string, boolean>;
+  /** Out of stock (whole product) — the buy button is replaced by a "sold out" state. */
   soldOut?: boolean;
   priceSlot: React.ReactNode;
   careSlot: React.ReactNode;
@@ -79,16 +82,19 @@ export function BuyPanel({
     [usingPerColour, unavailableSizes],
   );
   const available = activeSizes.filter((s) => !gone.has(s));
-  const needSize = available.length > 1;
+  // A size must always be chosen when the piece offers any size (even one), so
+  // the sizes render as cube buttons and a pick is required before ordering.
+  const needSize = available.length >= 1;
   const allGone = activeSizes.length > 0 && available.length === 0;
-  const disabled = soldOut || allGone;
-  const [size, setSize] = React.useState<string | null>(available.length === 1 ? available[0] : null);
+  const colourSoldOut = colour ? Boolean(colorSoldOut?.[colour]) : false;
+  const disabled = soldOut || colourSoldOut || allGone;
+  const [size, setSize] = React.useState<string | null>(null);
   const [hint, setHint] = React.useState(false);
 
-  // When the colour changes, drop a chosen size that the new colour doesn't
-  // offer, and auto-select when only one size is available.
+  // When the colour changes, drop a chosen size the new colour doesn't offer.
+  // Never auto-select — the shopper must click a size cube themselves.
   React.useEffect(() => {
-    setSize((prev) => (prev && available.includes(prev) ? prev : available.length === 1 ? available[0] : null));
+    setSize((prev) => (prev && available.includes(prev) ? prev : null));
     setHint(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colour]);
@@ -114,7 +120,7 @@ export function BuyPanel({
         </div>
       )}
 
-      {activeSizes.length > 1 && (
+      {activeSizes.length >= 1 && (
         <div className="mb-3.5 border-t border-dashed border-ink/30 pt-3">
           <div className="mb-2">
             <span className="font-archivo text-[11px] font-bold uppercase tracking-[0.16em] text-ink">{t("chrome.size")}</span>

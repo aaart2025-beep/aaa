@@ -4,7 +4,7 @@ import Image from "next/image";
 import { TransitionLink } from "@/components/transition/page-transition";
 import { Tape } from "@/components/paper/annotations";
 import { cn } from "@/lib/utils";
-import { priceInfo, scaleFor, type Product } from "@/lib/products";
+import { priceInfo, scaleFor, coverImage, type Product } from "@/lib/products";
 import { PaintPrice } from "@/components/paper/paint-price";
 import { useT } from "@/lib/i18n/context";
 
@@ -29,7 +29,7 @@ export function SpecCard({
   const t = useT();
   const paper = tone ?? "#f4efe2";
   const { price, original, percent } = priceInfo(product);
-  const cover = product.images[0];
+  const cover = coverImage(product) ?? product.images[0];
   const coverScale = scaleFor(product, cover);
   return (
     <TransitionLink

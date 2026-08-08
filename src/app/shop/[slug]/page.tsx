@@ -12,7 +12,7 @@ import { PaperHeader } from "@/components/paper/paper-header";
 import { PaintPrice } from "@/components/paper/paint-price";
 import { SpecCard } from "@/components/paper/spec-card";
 import { BuyPanel } from "@/components/cart/buy-panel";
-import { ColorVariantProvider, ColorGallery, ColorSizesLine } from "@/components/shop/color-variant";
+import { ColorVariantProvider, ColorGallery, ColorSizesLine, ColorSoldOutStamp } from "@/components/shop/color-variant";
 import { AaaLogo } from "@/components/book/aaa-logo";
 import { WHATSAPP_URL } from "@/components/paper/paper-footer";
 import { PolicyDialog } from "@/components/policy/policy-dialog";
@@ -245,11 +245,7 @@ export default async function ProductPage({ params }: PageProps) {
               ) : (
                 <ColorSizesLine label={t("shop.fieldSizes")} baseLabel={availableSizesLabel} colorSizes={raw.colorSizes} />
               )}
-              {product.soldOut && (
-                <span className="inline-block shrink-0 -rotate-[4deg] rounded border-2 border-red-600/80 bg-paper px-3 py-1 font-archivo text-[13px] font-extrabold uppercase tracking-[0.16em] text-red-600 shadow-[2px_2px_0_rgba(40,34,24,0.2)]">
-                  {t("shop.soldOut")}
-                </span>
-              )}
+              <ColorSoldOutStamp productSoldOut={product.soldOut} colorSoldOut={raw.colorSoldOut} label={t("shop.soldOut")} />
             </div>
           </div>
 
@@ -277,6 +273,7 @@ export default async function ProductPage({ params }: PageProps) {
               colors={raw.colors ?? []}
               colorImages={raw.colorImages}
               colorSizes={raw.colorSizes}
+              colorSoldOut={raw.colorSoldOut}
               soldOut={product.soldOut}
               priceSlot={
                 <PaintPrice
@@ -333,27 +330,25 @@ export default async function ProductPage({ params }: PageProps) {
                 ) : undefined
               }
               orderSlot={
-                product.soldOut ? (
-                  <PolicyDialog
-                    title={t("shop.orderNowTitle")}
-                    triggerLabel={t("shop.orderNow")}
-                    triggerClassName="chip-lime font-archivo px-5 py-3 text-[12px] font-bold uppercase tracking-[0.16em]"
-                  >
-                    <div className="flex flex-col gap-3">
-                      <p className="font-typewriter text-[12.5px] leading-[1.8] tracking-[0.02em] text-ink/80">
-                        {t("shop.orderNowBody")}
-                      </p>
-                      <a
-                        href={WHATSAPP_URL}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="chip-lime font-archivo inline-flex w-fit items-center gap-2 px-5 py-3 text-[12px] font-bold uppercase tracking-[0.16em]"
-                      >
-                        {t("shop.orderNowCta")}
-                      </a>
-                    </div>
-                  </PolicyDialog>
-                ) : undefined
+                <PolicyDialog
+                  title={t("shop.orderNowTitle")}
+                  triggerLabel={t("shop.orderNow")}
+                  triggerClassName="chip-lime font-archivo px-5 py-3 text-[12px] font-bold uppercase tracking-[0.16em]"
+                >
+                  <div className="flex flex-col gap-3">
+                    <p className="font-typewriter text-[12.5px] leading-[1.8] tracking-[0.02em] text-ink/80">
+                      {t("shop.orderNowBody")}
+                    </p>
+                    <a
+                      href={WHATSAPP_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="chip-lime font-archivo inline-flex w-fit items-center gap-2 px-5 py-3 text-[12px] font-bold uppercase tracking-[0.16em]"
+                    >
+                      {t("shop.orderNowCta")}
+                    </a>
+                  </div>
+                </PolicyDialog>
               }
             />
           </div>
