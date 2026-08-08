@@ -149,10 +149,17 @@ export function ProductEditor({
           <input
             type="checkbox"
             checked={!!product.soldOut}
-            onChange={(e) => onChange({ soldOut: e.target.checked || undefined })}
+            onChange={(e) => {
+              const on = e.target.checked;
+              // Marking sold out auto-marks every size unavailable; clearing it frees them.
+              const universe = (product.sizes?.length ? product.sizes : defaultSizes(product.category)).filter(
+                (s) => !/^one\b/i.test(s),
+              );
+              onChange({ soldOut: on || undefined, soldOutSizes: on && universe.length ? universe : undefined });
+            }}
             className="h-4 w-4 accent-red-500"
           />
-          Sold out <span className="text-neutral-500">— red “sold out” stamp; can’t be bought</span>
+          Sold out <span className="text-neutral-500">— red “sold out” stamp; all sizes marked unavailable; can’t be bought</span>
         </label>
         <label className="flex cursor-pointer items-center gap-2 text-[13px] text-neutral-300">
           <input
@@ -673,18 +680,26 @@ function ColoursSection({
 
                     {!usesDim && universe.length > 0 && (
                       <div>
-                        <div className="mb-1 text-[11px] uppercase tracking-wider text-neutral-500">Available sizes — tap to switch off</div>
+                        <div className="mb-1 text-[11px] uppercase tracking-wider text-neutral-500">
+                          Available sizes {soldOutMap[color] ? "— sold out, all unavailable" : "— tap to switch off"}
+                        </div>
                         <div className="flex flex-wrap gap-1.5">
                           {universe.map((s) => {
-                            const on = availFor(color).has(s);
+                            const cSoldOut = !!soldOutMap[color];
+                            const on = !cSoldOut && availFor(color).has(s);
                             return (
                               <button
                                 key={s}
                                 type="button"
+                                disabled={cSoldOut}
                                 onClick={() => toggleSize(color, s)}
-                                title={on ? "Available — tap to remove" : "Not available — tap to add"}
+                                title={cSoldOut ? "Sold out in this colour" : on ? "Available — tap to remove" : "Not available — tap to add"}
                                 className={`rounded-md border px-2.5 py-1 text-[12px] transition ${
-                                  on ? "border-amber-400/60 bg-amber-400/10 text-amber-200" : "border-white/15 text-neutral-500 line-through hover:border-white/40"
+                                  cSoldOut
+                                    ? "cursor-not-allowed border-white/10 text-neutral-600 line-through"
+                                    : on
+                                      ? "border-amber-400/60 bg-amber-400/10 text-amber-200"
+                                      : "border-white/15 text-neutral-500 line-through hover:border-white/40"
                                 }`}
                               >
                                 {s}

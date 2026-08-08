@@ -133,23 +133,24 @@ export function BuyPanel({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {activeSizes.map((s) => {
-              const off = gone.has(s);
+              // When the piece/colour is sold out, no size can be chosen.
+              const blocked = gone.has(s) || disabled;
               const active = size === s;
               return (
                 <button
                   key={s}
                   type="button"
                   aria-pressed={active}
-                  disabled={off}
-                  aria-disabled={off}
-                  title={off ? t("shop.soldOut") : undefined}
+                  disabled={blocked}
+                  aria-disabled={blocked}
+                  title={blocked ? t("shop.soldOut") : undefined}
                   onClick={() => {
-                    if (off) return;
+                    if (blocked) return;
                     setSize(s);
                     setHint(false);
                   }}
                   className={`font-typewriter min-w-[2.9rem] px-3 py-2.5 text-[12px] uppercase tracking-[0.08em] transition-colors sm:min-w-[2.6rem] sm:py-2 sm:text-[11px] ${
-                    off
+                    blocked
                       ? "cursor-not-allowed border border-ink/20 text-ink/35 line-through"
                       : active
                         ? "bg-ink text-paper"
