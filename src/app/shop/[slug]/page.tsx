@@ -12,7 +12,7 @@ import { PaperHeader } from "@/components/paper/paper-header";
 import { PaintPrice } from "@/components/paper/paint-price";
 import { SpecCard } from "@/components/paper/spec-card";
 import { BuyPanel } from "@/components/cart/buy-panel";
-import { ColorVariantProvider, ColorGallery } from "@/components/shop/color-variant";
+import { ColorVariantProvider, ColorGallery, ColorSizesLine } from "@/components/shop/color-variant";
 import { AaaLogo } from "@/components/book/aaa-logo";
 import { WHATSAPP_URL } from "@/components/paper/paper-footer";
 import { PolicyDialog } from "@/components/policy/policy-dialog";
@@ -243,7 +243,7 @@ export default async function ProductPage({ params }: PageProps) {
                   <span />
                 )
               ) : (
-                <Field label={t("shop.fieldSizes")} value={availableSizesLabel} />
+                <ColorSizesLine label={t("shop.fieldSizes")} baseLabel={availableSizesLabel} colorSizes={raw.colorSizes} />
               )}
               {product.soldOut && (
                 <span className="inline-block shrink-0 -rotate-[4deg] rounded border-2 border-red-600/80 bg-paper px-3 py-1 font-archivo text-[13px] font-extrabold uppercase tracking-[0.16em] text-red-600 shadow-[2px_2px_0_rgba(40,34,24,0.2)]">
@@ -276,6 +276,7 @@ export default async function ProductPage({ params }: PageProps) {
               unavailableSizes={product.soldOutSizes}
               colors={raw.colors ?? []}
               colorImages={raw.colorImages}
+              colorSizes={raw.colorSizes}
               soldOut={product.soldOut}
               priceSlot={
                 <PaintPrice

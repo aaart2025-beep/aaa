@@ -129,6 +129,10 @@ export interface Product {
   /** Physical size for pieces measured by dimensions (art objects / home).
    * Free text so the studio can use any unit ("40 cm", "16 in"). */
   dimensions?: { height?: string; width?: string; depth?: string };
+  /** Available sizes per colour, keyed by the colour value in `colors`. When a
+   * colour has an entry, the product page shows only those sizes for it; colours
+   * without an entry fall back to the product's general sizes. */
+  colorSizes?: Record<string, string[]>;
 }
 
 /** The display zoom for one image of a product (1 = natural size). */

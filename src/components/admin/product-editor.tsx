@@ -203,6 +203,8 @@ export function ProductEditor({
 
       <ColorImagesEditor product={product} onChange={onChange} />
 
+      <ColorSizesEditor product={product} onChange={onChange} />
+
       <SpecOverrides product={product} onChange={onChange} />
 
       <SizeGuideOverride product={product} onChange={onChange} />
@@ -455,6 +457,92 @@ function SpecOverrides({
               />
             </Field>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------- available sizes per colour ---------------- */
+
+function ColorSizesEditor({
+  product,
+  onChange,
+}: {
+  product: ContentProduct;
+  onChange: (patch: Partial<ContentProduct>) => void;
+}) {
+  const colors = product.colors ?? [];
+  const universe = (product.sizes?.length ? product.sizes : defaultSizes(product.category)).filter((s) => !/^one\b/i.test(s));
+  const map = product.colorSizes ?? {};
+  const [open, setOpen] = React.useState(Object.keys(map).length > 0);
+  // Only relevant when the piece has colours and real sizes.
+  if (colors.length === 0 || universe.length === 0) return null;
+
+  // Absent entry = every size available for that colour.
+  const availFor = (color: string): Set<string> => {
+    const entry = map[color];
+    return entry && entry.length ? new Set(entry) : new Set(universe);
+  };
+  const toggle = (color: string, s: string) => {
+    const set = availFor(color);
+    if (set.has(s)) set.delete(s);
+    else set.add(s);
+    const list = universe.filter((x) => set.has(x));
+    const next = { ...map };
+    // All (or none) selected → drop the entry so it uses the general sizes.
+    if (list.length === 0 || list.length === universe.length) delete next[color];
+    else next[color] = list;
+    onChange({ colorSizes: Object.keys(next).length ? next : undefined });
+  };
+
+  return (
+    <div className="rounded-lg border border-white/10 bg-white/[0.015]">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between px-3 py-2 text-left text-[12px] text-neutral-400 hover:text-white"
+      >
+        <span>
+          Sizes per colour{" "}
+          <span className="text-neutral-600">— tap to switch a size off for a colour (e.g. black only in L). All on = every size.</span>
+        </span>
+        <span>{open ? "▾" : "▸"}</span>
+      </button>
+      {open && (
+        <div className="flex flex-col gap-4 border-t border-white/10 p-3">
+          {colors.map((color) => {
+            const avail = availFor(color);
+            return (
+              <div key={color} className="rounded-lg border border-white/10 p-3">
+                <div className="mb-2 flex items-center gap-2">
+                  {isHex(color) ? (
+                    <span className="h-5 w-5 rounded-full border border-white/20" style={{ backgroundColor: color }} />
+                  ) : (
+                    <span className="h-5 w-5 rounded-full border border-dashed border-white/25" />
+                  )}
+                  <span className="text-[13px] font-medium text-neutral-200">{color}</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {universe.map((s) => {
+                    const on = avail.has(s);
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => toggle(color, s)}
+                        title={on ? "Available — tap to remove" : "Not available — tap to add"}
+                        className={`rounded-md border px-2.5 py-1 text-[12px] transition ${
+                          on ? "border-amber-400/60 bg-amber-400/10 text-amber-200" : "border-white/15 text-neutral-500 line-through hover:border-white/40"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

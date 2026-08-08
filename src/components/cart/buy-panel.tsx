@@ -23,6 +23,7 @@ export function BuyPanel({
   unavailableSizes,
   colors = [],
   colorImages,
+  colorSizes,
   soldOut = false,
   priceSlot,
   careSlot,
@@ -42,6 +43,8 @@ export function BuyPanel({
   colors?: string[];
   /** Per-colour photo sets, so the cart thumbnail matches the chosen colour. */
   colorImages?: Record<string, string[]>;
+  /** Available sizes per colour — when set, only these show for that colour. */
+  colorSizes?: Record<string, string[]>;
   /** Out of stock — the buy button is replaced by a "sold out" state. */
   soldOut?: boolean;
   priceSlot: React.ReactNode;
@@ -55,13 +58,6 @@ export function BuyPanel({
 }) {
   const add = useCart((s) => s.add);
   const t = useT();
-  const gone = React.useMemo(() => new Set(unavailableSizes ?? []), [unavailableSizes]);
-  const available = sizes.filter((s) => !gone.has(s));
-  const needSize = available.length > 1;
-  const allGone = sizes.length > 0 && available.length === 0;
-  const disabled = soldOut || allGone;
-  const [size, setSize] = React.useState<string | null>(needSize ? null : (available[0] ?? null));
-  const [hint, setHint] = React.useState(false);
 
   // Selected colour comes from the shared context (so the gallery swaps too);
   // fall back to local state if the panel is ever used without a provider.
@@ -69,6 +65,33 @@ export function BuyPanel({
   const [localColour, setLocalColour] = React.useState<string | null>(colors[0] ?? null);
   const colour = ctx ? ctx.selected : localColour;
   const setColour = ctx ? ctx.setSelected : setLocalColour;
+
+  // Sizes shown depend on the colour: a colour with its own set shows only those
+  // (all in stock); otherwise the general sizes with any sold-out ones struck out.
+  const perColour = colour ? colorSizes?.[colour] : undefined;
+  const usingPerColour = Boolean(perColour && perColour.length);
+  const activeSizes = React.useMemo(
+    () => (usingPerColour ? perColour! : sizes).filter((s) => s && !/^one\b/i.test(s)),
+    [usingPerColour, perColour, sizes],
+  );
+  const gone = React.useMemo(
+    () => (usingPerColour ? new Set<string>() : new Set(unavailableSizes ?? [])),
+    [usingPerColour, unavailableSizes],
+  );
+  const available = activeSizes.filter((s) => !gone.has(s));
+  const needSize = available.length > 1;
+  const allGone = activeSizes.length > 0 && available.length === 0;
+  const disabled = soldOut || allGone;
+  const [size, setSize] = React.useState<string | null>(available.length === 1 ? available[0] : null);
+  const [hint, setHint] = React.useState(false);
+
+  // When the colour changes, drop a chosen size that the new colour doesn't
+  // offer, and auto-select when only one size is available.
+  React.useEffect(() => {
+    setSize((prev) => (prev && available.includes(prev) ? prev : available.length === 1 ? available[0] : null));
+    setHint(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [colour]);
 
   const onAdd = () => {
     if (disabled) return;
@@ -91,13 +114,13 @@ export function BuyPanel({
         </div>
       )}
 
-      {sizes.length > 1 && (
+      {activeSizes.length > 1 && (
         <div className="mb-3.5 border-t border-dashed border-ink/30 pt-3">
           <div className="mb-2">
             <span className="font-archivo text-[11px] font-bold uppercase tracking-[0.16em] text-ink">{t("chrome.size")}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {sizes.map((s) => {
+            {activeSizes.map((s) => {
               const off = gone.has(s);
               const active = size === s;
               return (

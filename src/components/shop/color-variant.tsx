@@ -46,8 +46,31 @@ export function ColorGallery({
   const ctx = useColorVariant();
   const selected = ctx?.selected ?? null;
   const own = selected ? colorImages?.[selected] : undefined;
-  const views =
-    own && own.length ? resolveViews({ ...product, images: own, views: undefined }) : resolveViews(product);
+  const views = (own && own.length ? resolveViews({ ...product, images: own, views: undefined }) : resolveViews(product))
+    // The fabric close-up tab is not shown on the storefront.
+    .filter((v) => v.key !== "fabric");
   // Remount on colour change so the view tabs reset to the front of the new set.
   return <SpecImage key={selected ?? "base"} name={product.name} views={views} />;
+}
+
+/* The available-sizes summary line under the piece, reactive to the selected
+ * colour: shows only that colour's sizes when it has its own set. */
+export function ColorSizesLine({
+  label,
+  baseLabel,
+  colorSizes,
+}: {
+  label: string;
+  baseLabel: string;
+  colorSizes?: Record<string, string[]>;
+}) {
+  const ctx = useColorVariant();
+  const sel = ctx?.selected ?? null;
+  const per = sel ? colorSizes?.[sel] : undefined;
+  const value = per && per.length ? per.join(", ") : baseLabel;
+  return (
+    <p className="font-archivo text-[clamp(12px,1.4vw,15px)] leading-tight text-ink">
+      <span className="font-bold">{label}:</span> <span className="text-ink/85">{value}</span>
+    </p>
+  );
 }

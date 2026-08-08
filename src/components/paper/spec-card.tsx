@@ -90,9 +90,9 @@ export function SpecCard({
         <h3 className="font-typewriter line-clamp-2 min-h-[2.2em] text-[9.5px] uppercase leading-[1.15] tracking-[0.07em] text-ink sm:text-[11px] sm:tracking-[0.1em]">
           {product.name}
         </h3>
-        <div className="mt-1 flex items-center justify-between gap-1 sm:gap-1.5">
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1">
           {product.onePiece && !product.soldOut ? (
-            <span className="one-piece-badge font-typewriter shrink-0 text-[7.5px] uppercase tracking-[0.1em] sm:text-[9px]">
+            <span className="one-piece-badge font-typewriter min-w-0 max-w-full text-[7.5px] uppercase tracking-[0.1em] sm:text-[9px]">
               {t("shop.onePiece")}
             </span>
           ) : (
