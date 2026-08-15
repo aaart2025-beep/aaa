@@ -259,7 +259,13 @@ export function ImageManager({
               {idx === 0 && (
                 <span className="absolute left-1 top-1 rounded bg-amber-400 px-1.5 py-0.5 text-[9px] font-medium text-neutral-900">★ Cover</span>
               )}
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/60 p-1 opacity-0 transition-opacity group-hover:opacity-100">
+              {sc !== 1 && (
+                <span className="absolute right-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-amber-200">
+                  {Math.round(sc * 100)}%
+                </span>
+              )}
+              {/* Controls stay visible (not hover-only) so delete/reorder work on touch (iPad/phone). */}
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/60 p-1">
                 <div className="flex gap-0.5">
                   <button onClick={() => move(idx, idx - 1)} disabled={idx === 0} className="rounded bg-white/10 px-1.5 text-[12px] text-white disabled:opacity-30" title="Move left">◀</button>
                   <button onClick={() => move(idx, idx + 1)} disabled={idx === images.length - 1} className="rounded bg-white/10 px-1.5 text-[12px] text-white disabled:opacity-30" title="Move right">▶</button>
