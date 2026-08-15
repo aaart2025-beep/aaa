@@ -281,23 +281,29 @@ export function BuyPanel({
       {mounted && ackOpen &&
         createPortal(
           <div
-            className="fixed inset-0 z-[120] flex items-center justify-center p-5"
+            className="book-theme fixed inset-0 z-[120] flex items-center justify-center p-5"
             role="dialog"
             aria-modal="true"
             aria-label={t("shop.shoeNoteTitle")}
           >
             <div
-              className="absolute inset-0 bg-ink/50 backdrop-blur-[2px]"
+              className="absolute inset-0 bg-ink/70 backdrop-blur-[2px]"
               onClick={() => setAckOpen(false)}
             />
-            <div className="relative w-full max-w-sm border border-ink/25 bg-paper p-6 text-center shadow-2xl">
-              <p className="font-typewriter text-[10px] font-bold uppercase tracking-[0.24em] text-ink/55">
+            {/* Solid colours set inline too: this modal is portaled to <body>,
+                outside the .book-theme scope where the paper/ink tokens live, so
+                we can't rely on bg-paper/text-ink resolving here. */}
+            <div
+              className="relative w-full max-w-sm border-2 border-ink/70 p-6 text-center shadow-2xl"
+              style={{ backgroundColor: "oklch(0.945 0.018 88)", color: "oklch(0.21 0.004 60)" }}
+            >
+              <p className="font-typewriter text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "oklch(0.21 0.004 60 / 0.65)" }}>
                 {t("shop.shoeNoteLabel")}
               </p>
-              <h2 className="font-archivo mt-1 text-[17px] font-extrabold uppercase tracking-tight text-ink">
+              <h2 className="font-archivo mt-1 text-[17px] font-extrabold uppercase tracking-tight">
                 {t("shop.shoeNoteTitle")}
               </h2>
-              <p className="font-typewriter mt-3 text-[12.5px] leading-[1.8] tracking-[0.02em] text-ink/80">
+              <p className="font-typewriter mt-3 text-[13px] font-medium leading-[1.8] tracking-[0.02em]" style={{ color: "oklch(0.21 0.004 60 / 0.9)" }}>
                 {t("shop.shoeNote")}
               </p>
               <div className="mt-6 flex flex-col gap-2.5">
