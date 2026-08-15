@@ -1,4 +1,5 @@
 import { orderTotal, type Order } from "@/lib/orders/types";
+import type { PendingCart } from "@/lib/pending-carts/store";
 
 /* Transactional email content. Pure functions — no I/O — so they are unit
  * testable and render identically in every environment. Plain-table HTML
@@ -157,6 +158,77 @@ export function orderAlertEmail(order: Order): EmailContent {
     subject: `New order ${order.id} — ${ils(orderTotal(order))}`,
     html: shell(body),
     text: `New order ${order.id}\n${c.name} · ${c.email}${c.phone ? ` · ${c.phone}` : ""}\n${c.address ? `Ship to: ${c.address}\n` : ""}${itemsText(order)}\nTotal: ${ils(orderTotal(order))}\nAdmin: ${BRAND.site}/admin/orders`,
+  };
+}
+
+/** Abandoned-cart reminder — Hebrew first, then English. Item names link back
+ * to their product pages so the shopper can pick up where they left off even
+ * on a different device; the button returns them to checkout. */
+export function abandonedCartEmail(cart: PendingCart): EmailContent {
+  const name = cart.name ? esc(cart.name) : "";
+  const heGreeting = name ? `היי ${name},` : "היי,";
+  const enGreeting = name ? `Hi ${name},` : "Hi,";
+  const checkoutUrl = `${SITE}/checkout`;
+
+  const rowsFor = (lang: "he" | "en") => {
+    const rtl = lang === "he";
+    const namePad = rtl ? "padding-right:10px" : "padding-left:10px";
+    return cart.items
+      .map((i) => {
+        const img = abs(i.image);
+        const href = `${SITE}/shop/${encodeURIComponent(i.slug)}`;
+        const imgCell = img
+          ? `<td width="48" style="width:48px;padding:6px 0;vertical-align:middle"><a href="${href}"><img src="${img}" alt="" width="44" height="44" style="width:44px;height:44px;object-fit:contain;border:1px solid ${BRAND.line};border-radius:6px;background:#ffffff" /></a></td>`
+          : `<td width="48" style="width:48px"></td>`;
+        return `<tr>
+  ${imgCell}
+  <td style="padding:6px 0;${namePad};font-size:14px;vertical-align:middle"><a href="${href}" style="color:${BRAND.ink};text-decoration:none">${esc(i.name)}${i.variant ? ` — ${esc(i.variant)}` : ""}${i.qty > 1 ? ` ×${i.qty}` : ""}</a></td>
+  <td style="padding:6px 0;font-size:14px;text-align:${rtl ? "left" : "right"};white-space:nowrap;vertical-align:middle">${ils(i.price * i.qty)}</td>
+</tr>`;
+      })
+      .join("");
+  };
+
+  const table = (lang: "he" | "en") => {
+    const rtl = lang === "he";
+    const subLabel = rtl ? "סכום ביניים" : "Subtotal";
+    const valAlign = rtl ? "left" : "right";
+    const foot = `<tr>
+  <td colspan="2" style="padding:10px 0 0;border-top:1px solid ${BRAND.line};font-size:14px"><strong>${subLabel}</strong></td>
+  <td style="padding:10px 0 0;border-top:1px solid ${BRAND.line};text-align:${valAlign};font-size:14px;white-space:nowrap"><strong>${ils(cart.subtotal)}</strong></td>
+</tr>`;
+    return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;width:100%;margin-top:6px" dir="${rtl ? "rtl" : "ltr"}">${rowsFor(lang)}${foot}</table>`;
+  };
+
+  const btn = (label: string) =>
+    `<div style="margin:20px 0 4px"><a href="${checkoutUrl}" style="display:inline-block;background:${BRAND.ink};color:${BRAND.paper};text-decoration:none;font-size:14px;font-weight:bold;letter-spacing:1px;padding:12px 26px;border-radius:999px">${label}</a></div>`;
+
+  const he = `<div dir="rtl" style="text-align:right">
+  <h2 style="margin:0 0 8px;font-size:20px">שכחת משהו יפה</h2>
+  <p style="margin:0 0 4px;font-size:14px;line-height:1.7">${heGreeting} הפריטים האלה עדיין מחכים לך בעגלה. כל פריט נעשה בעבודת יד ובכמות מוגבלת — אז שווה לחזור לפני שהם ייגמרו.</p>
+  ${table("he")}
+  ${btn("להשלמת ההזמנה")}
+  <p style="margin:12px 0 0;font-size:12px;line-height:1.7;color:${BRAND.muted}">אם כבר השלמת את הרכישה — אפשר להתעלם מהמייל הזה. שאלות? פשוט השב/י כאן.</p>
+</div>`;
+
+  const en = `<div dir="ltr" style="text-align:left;margin-top:26px;padding-top:20px;border-top:1px dashed ${BRAND.line}">
+  <h2 style="margin:0 0 8px;font-size:20px">You left something behind</h2>
+  <p style="margin:0 0 4px;font-size:14px;line-height:1.7">${enGreeting} these pieces are still waiting in your bag. Each one is handmade in limited numbers — worth grabbing before it's gone.</p>
+  ${table("en")}
+  ${btn("Complete your order")}
+  <p style="margin:12px 0 0;font-size:12px;line-height:1.7;color:${BRAND.muted}">Already checked out? Ignore this note. Questions? Just reply here.</p>
+</div>`;
+
+  const textLines = cart.items
+    .map((i) => `- ${i.name}${i.variant ? ` (${i.variant})` : ""}${i.qty > 1 ? ` x${i.qty}` : ""} — ${ils(i.price * i.qty)}`)
+    .join("\n");
+
+  return {
+    subject: "שכחת משהו בעגלה? · You left something in your bag",
+    html: shell(he + en),
+    text:
+      `${heGreeting} הפריטים האלה עדיין בעגלה שלך:\n${textLines}\nסכום ביניים: ${ils(cart.subtotal)}\nלהשלמת ההזמנה: ${checkoutUrl}\n\n— — —\n\n` +
+      `${enGreeting} these items are still in your bag:\n${textLines}\nSubtotal: ${ils(cart.subtotal)}\nComplete your order: ${checkoutUrl}\nAAA — Wearable Art · artbyaaa.com`,
   };
 }
 

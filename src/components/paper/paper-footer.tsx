@@ -1,6 +1,7 @@
 import { TransitionLink } from "@/components/transition/page-transition";
 import { InstagramIcon, WhatsappIcon } from "@/components/paper/social-icons";
 import { AaaLogo } from "@/components/book/aaa-logo";
+import { NewsletterSignup } from "@/components/site/newsletter-signup";
 import { readContent } from "@/lib/content/store";
 import { getLang } from "@/lib/i18n/server";
 import { translate } from "@/lib/i18n/dictionary";
@@ -19,7 +20,6 @@ export async function PaperFooter() {
   // Hebrew → dictionary; English → admin content text (falls back to English default).
   const text = (key: string, fallback: string, tKey: string) =>
     lang === "he" ? t(tKey) : (content.texts[key] ?? fallback);
-  const email = content.texts["contact.email"] ?? "aaart2025@gmail.com";
 
   return (
     <footer className="border-t border-ink/15 px-5 pb-8 pt-10 sm:px-8">
@@ -50,36 +50,15 @@ export async function PaperFooter() {
             </span>
           </div>
 
-          {/* newsletter — opens a pre-filled mail draft */}
-          <form
-            action={`mailto:${email}`}
-            method="post"
-            encType="text/plain"
-            className="flex w-full max-w-[280px] flex-col items-center gap-2 justify-self-center sm:items-end sm:justify-self-end"
-          >
-            <label
-              htmlFor="footer-email"
-              className="font-typewriter text-[10px] uppercase tracking-[0.22em] text-ink/70"
-            >
-              {text("footer.newsletter", "Join the AAA community", "chrome.joinCommunity")}
-            </label>
-            <div className="flex w-full items-stretch gap-2">
-              <input
-                id="footer-email"
-                type="email"
-                name="email"
-                required
-                placeholder={t("chrome.emailPlaceholder")}
-                className="font-typewriter w-full min-w-0 border-b border-ink/40 bg-transparent px-1 pb-1 text-[16px] tracking-[0.06em] text-ink placeholder:text-ink/70 focus:border-ink focus:outline-none sm:text-[11.5px]"
-              />
-              <button
-                type="submit"
-                className="chip-lime font-typewriter shrink-0 px-3.5 py-2.5 text-[10px] uppercase tracking-[0.16em] sm:py-1.5"
-              >
-                {t("chrome.subscribe")}
-              </button>
-            </div>
-          </form>
+          {/* newsletter — real signup: stores the email for offers & discounts */}
+          <NewsletterSignup
+            label={text("footer.newsletter", "Join the AAA community", "chrome.joinCommunity")}
+            placeholder={t("chrome.emailPlaceholder")}
+            cta={t("chrome.subscribe")}
+            sending={t("chrome.subscribeSending")}
+            thanks={t("chrome.subscribeThanks")}
+            error={t("chrome.subscribeError")}
+          />
         </div>
 
         {/* bottom rule */}

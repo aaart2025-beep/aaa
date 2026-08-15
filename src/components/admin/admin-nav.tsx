@@ -3,13 +3,14 @@ import Link from "next/link";
 /* Shared top bar for the back-office pages (orders, messages, customers,
  * media). Rendered on the paper surface; the active tab is inked solid. */
 
-export type AdminTab = "console" | "orders" | "messages" | "customers" | "reviews" | "media";
+export type AdminTab = "console" | "orders" | "messages" | "customers" | "subscribers" | "reviews" | "media";
 
 const TABS: { id: AdminTab; label: string; href: string }[] = [
   { id: "console", label: "Edit site", href: "/admin" },
   { id: "orders", label: "Orders", href: "/admin/orders" },
   { id: "messages", label: "Messages", href: "/admin/messages" },
   { id: "customers", label: "Customers", href: "/admin/customers" },
+  { id: "subscribers", label: "Subscribers", href: "/admin/subscribers" },
   { id: "reviews", label: "Reviews", href: "/admin/reviews" },
   { id: "media", label: "Media", href: "/admin/media" },
 ];

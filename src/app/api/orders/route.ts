@@ -4,6 +4,7 @@ import { appendOrder } from "@/lib/orders/store";
 import { newOrderId, type Order, type OrderItem, type OrderCustomer } from "@/lib/orders/types";
 import { clientKey, corsHeadersFor, rateLimit } from "@/lib/api-guard";
 import { sendOrderEmails } from "@/lib/email/order-emails";
+import { markCartOrdered } from "@/lib/pending-carts/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -145,6 +146,13 @@ export async function POST(req: Request) {
       { ok: false, error: "We couldn't reach the studio's order system." },
       { status: 503, headers: cors },
     );
+  }
+
+  // Converted → drop this shopper out of the abandoned-cart reminders.
+  try {
+    await markCartOrdered(email);
+  } catch {
+    /* best-effort — never fail an order over the reminder bookkeeping */
   }
 
   return NextResponse.json({ ok: true, id: order.id, subtotal }, { headers: cors });

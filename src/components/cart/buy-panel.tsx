@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { useCart } from "@/lib/cart/store";
 import { useT } from "@/lib/i18n/context";
 import { useColorVariant } from "@/components/shop/color-variant";
@@ -26,6 +27,7 @@ export function BuyPanel({
   colorSizes,
   colorSoldOut,
   soldOut = false,
+  requireAck = false,
   priceSlot,
   careSlot,
   guideSlot,
@@ -50,6 +52,9 @@ export function BuyPanel({
   colorSoldOut?: Record<string, boolean>;
   /** Out of stock (whole product) — the buy button is replaced by a "sold out" state. */
   soldOut?: boolean;
+  /** Shoes: require the shopper to acknowledge the price-clause pop-up before the
+   * item is added to the bag. */
+  requireAck?: boolean;
   priceSlot: React.ReactNode;
   careSlot: React.ReactNode;
   /** This product's size-guide trigger (a pop-up). Omitted when there's none. */
@@ -96,6 +101,10 @@ export function BuyPanel({
   const disabled = variantSoldOut || allGone;
   const [size, setSize] = React.useState<string | null>(null);
   const [hint, setHint] = React.useState(false);
+  // Shoe price-clause acknowledgement modal.
+  const [ackOpen, setAckOpen] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
 
   // When the colour changes, drop a chosen size the new colour doesn't offer.
   // Never auto-select — the shopper must click a size cube themselves.
@@ -105,15 +114,45 @@ export function BuyPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colour]);
 
+  // Lock scroll + allow Escape to dismiss while the acknowledgement is open.
+  React.useEffect(() => {
+    if (!ackOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAckOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [ackOpen]);
+
+  // Actually drop the piece into the bag (after any required acknowledgement).
+  const doAdd = () => {
+    const variant = [size, colour].filter(Boolean).join(" · ") || undefined;
+    const thumb = (!isPrimary && colour && colorImages?.[colour]?.[0]) || image;
+    add({ slug, name, price, image: thumb, variant });
+  };
+
   const onAdd = () => {
     if (disabled) return;
     if (needSize && !size) {
       setHint(true);
       return;
     }
-    const variant = [size, colour].filter(Boolean).join(" · ") || undefined;
-    const thumb = (!isPrimary && colour && colorImages?.[colour]?.[0]) || image;
-    add({ slug, name, price, image: thumb, variant });
+    // Shoes: confirm the price clause first; the add happens on confirm.
+    if (requireAck) {
+      setAckOpen(true);
+      return;
+    }
+    doAdd();
+  };
+
+  const confirmAck = () => {
+    setAckOpen(false);
+    doAdd();
   };
 
   return (
@@ -235,6 +274,52 @@ export function BuyPanel({
           )}
         </div>
       </div>
+
+      {/* Shoe price-clause acknowledgement — centred pop-up; the item is only
+          added once the shopper confirms they've read it. Portaled to <body> so
+          no transformed ancestor can shift it off-centre. */}
+      {mounted && ackOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[120] flex items-center justify-center p-5"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("shop.shoeNoteTitle")}
+          >
+            <div
+              className="absolute inset-0 bg-ink/50 backdrop-blur-[2px]"
+              onClick={() => setAckOpen(false)}
+            />
+            <div className="relative w-full max-w-sm border border-ink/25 bg-paper p-6 text-center shadow-2xl">
+              <p className="font-typewriter text-[10px] font-bold uppercase tracking-[0.24em] text-ink/55">
+                {t("shop.shoeNoteLabel")}
+              </p>
+              <h2 className="font-archivo mt-1 text-[17px] font-extrabold uppercase tracking-tight text-ink">
+                {t("shop.shoeNoteTitle")}
+              </h2>
+              <p className="font-typewriter mt-3 text-[12.5px] leading-[1.8] tracking-[0.02em] text-ink/80">
+                {t("shop.shoeNote")}
+              </p>
+              <div className="mt-6 flex flex-col gap-2.5">
+                <button
+                  type="button"
+                  onClick={confirmAck}
+                  className="chip-lime font-archivo w-full px-6 py-3 text-[12px] font-bold uppercase tracking-[0.16em]"
+                >
+                  {t("shop.shoeAckConfirm")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAckOpen(false)}
+                  className="font-typewriter text-[10px] uppercase tracking-[0.16em] text-ink/60 underline underline-offset-2 transition-colors hover:text-ink"
+                >
+                  {t("shop.shoeAckCancel")}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

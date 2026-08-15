@@ -25,6 +25,7 @@ function LineField({
   label,
   value,
   onChange,
+  onBlur,
   type = "text",
   area = false,
   placeholder,
@@ -32,6 +33,7 @@ function LineField({
   label: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onBlur?: React.FocusEventHandler<HTMLInputElement | HTMLTextAreaElement>;
   type?: string;
   area?: boolean;
   placeholder?: string;
@@ -40,9 +42,9 @@ function LineField({
     <label className="flex flex-col gap-1">
       <span className="font-typewriter text-[10px] font-bold uppercase tracking-[0.16em] text-ink">{label}</span>
       {area ? (
-        <textarea value={value} onChange={onChange} rows={2} placeholder={placeholder} className={`${inputCls} resize-none`} />
+        <textarea value={value} onChange={onChange} onBlur={onBlur} rows={2} placeholder={placeholder} className={`${inputCls} resize-none`} />
       ) : (
-        <input type={type} value={value} onChange={onChange} placeholder={placeholder} className={inputCls} />
+        <input type={type} value={value} onChange={onChange} onBlur={onBlur} placeholder={placeholder} className={inputCls} />
       )}
     </label>
   );
@@ -118,6 +120,37 @@ export function CheckoutClient({
   const set =
     (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  // Abandoned-cart capture: once the shopper has typed a valid email and has
+  // items, quietly save the cart so the studio can send a reminder if they
+  // never finish. Fire-and-forget; deduped so we don't re-post an identical
+  // state. Never blocks or surfaces anything to the shopper.
+  const lastSent = React.useRef("");
+  const capturePending = React.useCallback(() => {
+    const em = form.email.trim();
+    if (!isEmail(em) || items.length === 0) return;
+    const lines = items.map((i) => ({ slug: i.slug, variant: i.variant, qty: i.qty }));
+    const sig = em.toLowerCase() + "#" + lines.map((l) => `${l.slug}:${l.variant ?? ""}:${l.qty}`).sort().join(",");
+    if (sig === lastSent.current) return;
+    lastSent.current = sig;
+    fetch(`${apiBase}/api/cart/pending`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: em, name: form.name.trim() || undefined, items: lines, company, source: "checkout" }),
+      keepalive: true,
+    }).catch(() => {
+      // best-effort — allow a later change to retry
+      lastSent.current = "";
+    });
+  }, [apiBase, form.email, form.name, items, company]);
+
+  // Also refresh the saved cart shortly after the items change (e.g. quantity
+  // tweaks) once an email is on file — debounced so we don't spam the endpoint.
+  React.useEffect(() => {
+    if (!isEmail(form.email.trim()) || items.length === 0) return;
+    const t = setTimeout(capturePending, 900);
+    return () => clearTimeout(t);
+  }, [items, form.email, capturePending]);
 
   const placeOrder = async () => {
     setError(null);
@@ -264,7 +297,7 @@ export function CheckoutClient({
         <p className="font-typewriter text-[9px] uppercase tracking-[0.2em] text-ink/70">{t("checkout.yourDetails")}</p>
         <div className="grid gap-3.5 sm:grid-cols-2">
           <LineField label={t("checkout.fullName")} value={form.name} onChange={set("name")} placeholder={t("checkout.namePlaceholder")} />
-          <LineField label={t("checkout.email")} type="email" value={form.email} onChange={set("email")} placeholder={t("checkout.emailPlaceholder")} />
+          <LineField label={t("checkout.email")} type="email" value={form.email} onChange={set("email")} onBlur={capturePending} placeholder={t("checkout.emailPlaceholder")} />
           <LineField label={t("checkout.phone")} value={form.phone} onChange={set("phone")} placeholder={t("checkout.phonePlaceholder")} />
           <LineField label={t("checkout.address")} value={form.address} onChange={set("address")} placeholder={t("checkout.addressPlaceholder")} />
         </div>

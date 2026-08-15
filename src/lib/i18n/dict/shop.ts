@@ -81,6 +81,13 @@ export const shop: Record<Lang, Record<string, string>> = {
     "shop.orderNowBody":
       "This piece is currently sold out — but many of our pieces can be re-made as a personal, one-off commission. Message us and we'll arrange a custom order for you, including timing and options.",
     "shop.orderNowCta": "Message us on WhatsApp",
+    /* ---- shoe price disclaimer (Footwear only) ---- */
+    "shop.shoeNoteLabel": "Please note",
+    "shop.shoeNoteTitle": "Before you add this",
+    "shop.shoeNote":
+      "The price is for the artwork on the shoe only — it does not include the shoe itself. You provide a brand-new, unused pair for the studio to work on.",
+    "shop.shoeAckConfirm": "I understand — add to bag",
+    "shop.shoeAckCancel": "Go back",
     "shop.addToCart": "Add to Cart",
     "shop.soldOut": "Sold out",
     "shop.onePiece": "One piece only",
@@ -245,6 +252,13 @@ export const shop: Record<Lang, Record<string, string>> = {
     "shop.orderNowBody":
       "הפריט אזל כרגע מהמלאי — אך ניתן ליצור מחדש רבים מהפריטים שלנו בהזמנה אישית, כיצירה חד-פעמית לפי בקשה. כתבו לנו ונתאם עבורכם הזמנה מותאמת אישית, כולל זמני אספקה ואפשרויות.",
     "shop.orderNowCta": "כתבו לנו בוואטסאפ",
+    /* ---- shoe price disclaimer (Footwear only) ---- */
+    "shop.shoeNoteLabel": "לתשומת ליבך",
+    "shop.shoeNoteTitle": "לפני שמוסיפים לעגלה",
+    "shop.shoeNote":
+      "המחיר הוא עבור העבודה האמנותית על הנעל בלבד — ואינו כולל את הנעל עצמה. עליכם לספק נעל חדשה לגמרי (לא משומשת) שעליה נעבוד.",
+    "shop.shoeAckConfirm": "קראתי ואני מאשר — הוספה לעגלה",
+    "shop.shoeAckCancel": "חזרה",
     "shop.addToCart": "הוספה לעגלה",
     "shop.soldOut": "אזל המלאי",
     "shop.onePiece": "פריט יחיד",

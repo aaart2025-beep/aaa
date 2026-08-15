@@ -159,6 +159,10 @@ export default async function ProductPage({ params }: PageProps) {
   // The description button appears only when the piece has description copy.
   const hasDescription = (product.description ?? "").trim().length > 0;
 
+  // Shoes (Footwear): the price is for the artwork on the shoe only. Show a note
+  // and make add-to-bag confirm the clause first.
+  const isShoe = raw.category === "Footwear";
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -280,6 +284,7 @@ export default async function ProductPage({ params }: PageProps) {
               colorSizes={raw.colorSizes}
               colorSoldOut={raw.colorSoldOut}
               soldOut={product.soldOut}
+              requireAck={isShoe}
               priceSlot={
                 <PaintPrice
                   price={salePrice}
@@ -356,6 +361,18 @@ export default async function ProductPage({ params }: PageProps) {
                 </PolicyDialog>
               }
             />
+
+            {/* shoe price clause — the price covers the artwork only */}
+            {isShoe && (
+              <p className="mt-3 flex items-start gap-2 border border-dashed border-ink/30 bg-paper-dark/10 px-3.5 py-2.5">
+                <span aria-hidden className="font-archivo shrink-0 text-[12px] font-bold text-ink/70">
+                  ⚑
+                </span>
+                <span className="font-typewriter text-[11px] leading-[1.7] tracking-[0.02em] text-ink/75">
+                  <span className="font-bold text-ink">{t("shop.shoeNoteLabel")}:</span> {t("shop.shoeNote")}
+                </span>
+              </p>
+            )}
           </div>
 
           {/* credit */}

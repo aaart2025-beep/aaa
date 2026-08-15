@@ -543,13 +543,23 @@ export function ScrollVideoHero({ texts, header }: ScrollVideoHeroProps = {}) {
       rawScrollY = endY;
       smoothScroll = endY;
       scrollVel = 0;
+      lastDrawn = -1;
+      lastA = -1;
+      // Force the finished state so the shop nav + end content appear even if the
+      // scroll math reports no scrollable height (happens on some iPads) — a tap
+      // must ALWAYS get the visitor in.
+      endedLocal = true;
+      setEnded(true);
       needsDraw = true;
       updateTarget();
       wake();
     };
     const onIntroActivate = () => {
       if (autoplaying || rewinding) return;
-      if (reduceMotion || maxScrollY() < 8) enterInstant();
+      // Touch tablets/phones (iPad included), reduce-motion, or a too-short track
+      // skip the heavy cinematic scrub — which can stall on iPad — and enter
+      // instantly, so tapping the cover always lands in the shop.
+      if (reduceMotion || lite || maxScrollY() < 8) enterInstant();
       else startAutoplay();
     };
     const introEl = introRef.current;
